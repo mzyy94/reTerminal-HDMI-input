@@ -35,6 +35,10 @@ fn build_ui(application: &gtk::Application) {
 fn main() {
     let application = gtk::Application::new(Some("com.mzyy94.restream"), Default::default());
 
-    application.connect_activate(build_ui);
+    application.connect_startup(|app| {
+        build_ui(&app);
+    });
+
+    application.connect_activate(|_| {});
     application.run();
 }
