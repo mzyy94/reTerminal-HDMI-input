@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 gdk = "0.15.4"
+gstreamer = "0.18.5"
 gtk = "0.15.4"
