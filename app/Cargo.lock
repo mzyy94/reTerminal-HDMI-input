@@ -572,7 +572,6 @@ dependencies = [
 name = "restream"
 version = "0.1.0"
 dependencies = [
- "gdk",
  "gstreamer",
  "gtk",
 ]

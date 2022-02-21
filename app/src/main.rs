@@ -1,5 +1,5 @@
 extern crate gstreamer as gst;
-use gtk::glib;
+use gtk::{gdk, glib};
 
 use gst::prelude::*;
 use gtk::prelude::*;
