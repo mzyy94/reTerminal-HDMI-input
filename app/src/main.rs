@@ -5,21 +5,30 @@ use gst::prelude::*;
 use gtk::prelude::*;
 use std::cell::RefCell;
 
-fn build_ui(application: &gtk::Application, widget: &gtk::Widget) {
+fn build_ui(application: &gtk::Application, video_widget: &gtk::Widget) {
     let window = gtk::ApplicationWindow::new(application);
 
     window.set_title("reStream 0.1");
     window.set_border_width(10);
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(1280, 720);
+    window.set_resizable(false);
 
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    vbox.pack_start(widget, true, true, 0);
+    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    hbox.pack_start(video_widget, false, false, 0);
     let button = gtk::Button::from_icon_name(Some("window-close"), gtk::IconSize::Button);
     button.connect_clicked(glib::clone!(@weak window => move |_| {
         window.close();
     }));
-    vbox.add(&button);
+    hbox.pack_start(&button, true, true, 0);
+
+    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    let button = gtk::Button::from_icon_name(Some("window-close"), gtk::IconSize::Button);
+    button.connect_clicked(glib::clone!(@weak window => move |_| {
+        window.close();
+    }));
+    vbox.pack_start(&hbox, true, true, 0);
+    vbox.pack_start(&button, true, true, 0);
 
     window.add(&vbox);
     window.show_all();
@@ -45,6 +54,8 @@ fn create_pipeline() -> (gst::Pipeline, gst::Bus, gtk::Widget) {
 
     let src = gst::ElementFactory::make("videotestsrc", None).unwrap();
     let capsfilter = gst::ElementFactory::make("capsfilter", None).unwrap();
+    let videoscale = gst::ElementFactory::make("videoscale", None).unwrap();
+    let capsfilter2 = gst::ElementFactory::make("capsfilter", None).unwrap();
     let (sink, widget) = if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
         let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
         glsinkbin.set_property("sink", &gtkglsink);
@@ -66,9 +77,16 @@ fn create_pipeline() -> (gst::Pipeline, gst::Bus, gtk::Widget) {
         .build();
     capsfilter.set_property("caps", &caps);
 
-    pipeline.add_many(&[&src, &capsfilter, &sink]).unwrap();
-    src.link(&capsfilter).unwrap();
-    capsfilter.link(&sink).unwrap();
+    let caps = gst::Caps::builder("video/x-raw")
+        .field("width", 1024i32)
+        .field("height", 576i32)
+        .build();
+    capsfilter2.set_property("caps", &caps);
+
+    pipeline
+        .add_many(&[&src, &capsfilter, &videoscale, &capsfilter2, &sink])
+        .unwrap();
+    gst::Element::link_many(&[&src, &capsfilter, &videoscale, &capsfilter2, &sink]).unwrap();
 
     (pipeline, bus, widget)
 }
