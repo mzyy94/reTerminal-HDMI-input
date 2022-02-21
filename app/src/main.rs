@@ -44,6 +44,7 @@ fn create_pipeline() -> (gst::Pipeline, gst::Bus, gtk::Widget) {
     let bus = pipeline.bus().unwrap();
 
     let src = gst::ElementFactory::make("videotestsrc", None).unwrap();
+    let capsfilter = gst::ElementFactory::make("capsfilter", None).unwrap();
     let (sink, widget) = if let Ok(gtkglsink) = gst::ElementFactory::make("gtkglsink", None) {
         let glsinkbin = gst::ElementFactory::make("glsinkbin", None).unwrap();
         glsinkbin.set_property("sink", &gtkglsink);
@@ -55,8 +56,19 @@ fn create_pipeline() -> (gst::Pipeline, gst::Bus, gtk::Widget) {
         (sink, widget)
     };
 
-    pipeline.add_many(&[&src, &sink]).unwrap();
-    src.link(&sink).unwrap();
+    src.set_property_from_str("pattern", "ball");
+    src.set_property("is-live", true);
+
+    let caps = gst::Caps::builder("video/x-raw")
+        .field("width", 1280i32)
+        .field("height", 720i32)
+        .field("framerate", gst::Fraction::new(30, 1))
+        .build();
+    capsfilter.set_property("caps", &caps);
+
+    pipeline.add_many(&[&src, &capsfilter, &sink]).unwrap();
+    src.link(&capsfilter).unwrap();
+    capsfilter.link(&sink).unwrap();
 
     (pipeline, bus, widget)
 }
