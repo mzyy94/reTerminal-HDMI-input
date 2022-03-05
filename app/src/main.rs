@@ -1,7 +1,16 @@
-use iced::{executor, Application, Command, Element, Settings, Text};
+use iced::{executor, window, Application, Command, Element, Settings, Text};
+use std::env;
 
 pub fn main() -> iced::Result {
-  Hello::run(Settings::default())
+  Hello::run(Settings {
+    antialiasing: true,
+    window: window::Settings {
+      size: (1280, 720),
+      resizable: false,
+      ..window::Settings::default()
+    },
+    ..Settings::default()
+  })
 }
 
 struct Hello;
@@ -17,6 +26,15 @@ impl Application for Hello {
 
   fn title(&self) -> String {
     String::from("broadcast-terminal")
+  }
+
+  fn mode(&self) -> window::Mode {
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 && &args[1] == "--fullscreen" {
+      window::Mode::Fullscreen
+    } else {
+      window::Mode::Windowed
+    }
   }
 
   fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
