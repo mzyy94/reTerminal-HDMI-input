@@ -1,20 +1,10 @@
 use iced::{
-  container, executor, window, Application, Background, Color, Command, Container, Element, Length,
-  Settings, Text,
+  executor, window, Alignment, Application, Column, Command, Container, Element, Length, Row,
+  Settings, Space, Text,
 };
 use std::env;
 
-pub struct ContainerStyle;
-
-impl container::StyleSheet for ContainerStyle {
-  fn style(&self) -> container::Style {
-    container::Style {
-      background: Some(Background::Color(Color::from_rgb8(73, 100, 122))),
-      text_color: Some(Color::WHITE),
-      ..container::Style::default()
-    }
-  }
-}
+mod style;
 
 pub fn main() -> iced::Result {
   Hello::run(Settings {
@@ -59,13 +49,31 @@ impl Application for Hello {
   fn view(&mut self) -> Element<Self::Message> {
     let text = Text::new("Hello, world!");
 
-    Container::new(text)
+    let video_area = Container::new(Space::new(Length::Units(1024), Length::Units(576)))
+      .center_x()
+      .style(style::PreviewArea);
+
+    let main_content: Element<_> = Row::new()
+      .width(Length::Fill)
+      .spacing(20)
+      .align_items(Alignment::Start)
+      .push(video_area)
+      .into();
+
+    let content: Element<_> = Column::new()
+      .height(Length::Fill)
+      .spacing(2)
+      .push(main_content)
+      .push(text)
+      .into();
+
+    Container::new(content)
       .width(Length::Fill)
       .height(Length::Fill)
-      .padding(20)
+      .padding(0)
       .center_x()
       .center_y()
-      .style(ContainerStyle)
+      .style(style::Container)
       .into()
   }
 }
