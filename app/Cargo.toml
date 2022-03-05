@@ -1,0 +1,9 @@
+[package]
+name = "broadcast-terminal"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+iced = { git = "https://github.com/iced-rs/iced",  rev = "ee6f4cb2ac7f322ef708fe0655835638bac841ea" }
