@@ -10,13 +10,11 @@ impl button::StyleSheet for IconButton {
     match self {
       IconButton::Active => button::Style {
         background: Some(Background::Color(Color::from_rgb8(114, 202, 255))),
-        border_radius: 10.0,
         text_color: Color::WHITE,
         ..button::Style::default()
       },
       IconButton::Inactive => button::Style {
         background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
-        border_radius: 10.0,
         text_color: Color::WHITE,
         ..button::Style::default()
       },
@@ -53,13 +51,11 @@ impl button::StyleSheet for LabelButton {
     match self {
       LabelButton::Action => button::Style {
         background: Some(Background::Color(Color::from_rgb8(71, 81, 60))),
-        border_radius: 10.0,
         text_color: Color::WHITE,
         ..button::Style::default()
       },
       LabelButton::Primary => button::Style {
         background: Some(Background::Color(Color::from_rgb8(158, 242, 88))),
-        border_radius: 10.0,
         text_color: Color::WHITE,
         ..button::Style::default()
       },
