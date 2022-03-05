@@ -1,13 +1,13 @@
 use iced::{
-  executor, window, Alignment, Application, Color, Column, Command, Container, Element, Length,
-  Row, Settings, Space, Text,
+  button, executor, image, window, Alignment, Application, Button, Color, Column, Command,
+  Container, Element, Image, Length, Row, Settings, Space, Text,
 };
 use std::env;
 
 mod style;
 
 pub fn main() -> iced::Result {
-  Hello::run(Settings {
+  App::run(Settings {
     antialiasing: true,
     window: window::Settings {
       size: (1280, 720),
@@ -18,15 +18,30 @@ pub fn main() -> iced::Result {
   })
 }
 
-struct Hello;
+struct App {
+  voice_off: button::State,
+  camera_off: button::State,
+  sound_off: button::State,
+  video_off: button::State,
+  stream_off: button::State,
+}
 
-impl Application for Hello {
+impl Application for App {
   type Executor = executor::Default;
   type Message = ();
   type Flags = ();
 
-  fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
-    (Hello, Command::none())
+  fn new(_flags: ()) -> (App, Command<Self::Message>) {
+    (
+      App {
+        voice_off: button::State::new(),
+        camera_off: button::State::new(),
+        sound_off: button::State::new(),
+        video_off: button::State::new(),
+        stream_off: button::State::new(),
+      },
+      Command::none(),
+    )
   }
 
   fn title(&self) -> String {
@@ -53,11 +68,58 @@ impl Application for Hello {
       .center_x()
       .style(style::PreviewArea);
 
+    let action_button = |state, icon, active| {
+      let image = Image::<image::Handle>::new(icon);
+      let button = Button::new(state, image).style(if active {
+        style::Button::Active
+      } else {
+        style::Button::Inactive
+      });
+
+      button
+        .padding(8)
+        .width(Length::Units(90))
+        .height(Length::Units(80))
+    };
+
+    let side_actions = Column::new()
+      .width(Length::Fill)
+      .spacing(12)
+      .align_items(Alignment::End)
+      .push(Space::with_height(Length::Units(104)))
+      .push(action_button(
+        &mut self.voice_off,
+        "res/baseline_mic_off_white_48dp.png",
+        true,
+      ))
+      .push(action_button(
+        &mut self.camera_off,
+        "res/baseline_videocam_off_white_48dp.png",
+        false,
+      ))
+      .push(action_button(
+        &mut self.sound_off,
+        "res/baseline_volume_off_white_48dp.png",
+        false,
+      ))
+      .push(action_button(
+        &mut self.video_off,
+        "res/baseline_movie_white_48dp.png",
+        false,
+      ))
+      .push(action_button(
+        &mut self.stream_off,
+        "res/baseline_pause_circle_white_48dp.png",
+        false,
+      ));
+
+    let side_actions: Element<_> = side_actions.into();
+
     let main_content: Element<_> = Row::new()
       .width(Length::Fill)
-      .spacing(20)
       .align_items(Alignment::Start)
       .push(video_area)
+      .push(side_actions)
       .into();
 
     let content: Element<_> = Column::new()
