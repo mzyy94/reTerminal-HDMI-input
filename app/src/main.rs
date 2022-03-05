@@ -1,5 +1,20 @@
-use iced::{executor, window, Application, Command, Element, Settings, Text};
+use iced::{
+  container, executor, window, Application, Background, Color, Command, Container, Element, Length,
+  Settings, Text,
+};
 use std::env;
+
+pub struct ContainerStyle;
+
+impl container::StyleSheet for ContainerStyle {
+  fn style(&self) -> container::Style {
+    container::Style {
+      background: Some(Background::Color(Color::from_rgb8(73, 100, 122))),
+      text_color: Some(Color::WHITE),
+      ..container::Style::default()
+    }
+  }
+}
 
 pub fn main() -> iced::Result {
   Hello::run(Settings {
@@ -42,6 +57,15 @@ impl Application for Hello {
   }
 
   fn view(&mut self) -> Element<Self::Message> {
-    Text::new("Hello, world!").into()
+    let text = Text::new("Hello, world!");
+
+    Container::new(text)
+      .width(Length::Fill)
+      .height(Length::Fill)
+      .padding(20)
+      .center_x()
+      .center_y()
+      .style(ContainerStyle)
+      .into()
   }
 }
