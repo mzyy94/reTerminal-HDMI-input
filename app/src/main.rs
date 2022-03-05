@@ -30,6 +30,7 @@ struct App {
   second_action: button::State,
   third_action: button::State,
   broadcast_action: button::State,
+  settings: button::State,
 }
 
 impl Application for App {
@@ -73,27 +74,27 @@ impl Application for App {
       .push(action::icon(
         &mut self.voice_off,
         "res/baseline_mic_off_white_48dp.png",
-        true,
+        action::IconButton::Active,
       ))
       .push(action::icon(
         &mut self.camera_off,
         "res/baseline_videocam_off_white_48dp.png",
-        false,
+        action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.sound_off,
         "res/baseline_volume_off_white_48dp.png",
-        false,
+        action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.video_off,
         "res/baseline_movie_white_48dp.png",
-        false,
+        action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.stream_off,
         "res/baseline_pause_circle_white_48dp.png",
-        false,
+        action::IconButton::Inactive,
       ))
       .into();
 
@@ -109,11 +110,32 @@ impl Application for App {
       .height(Length::Fill)
       .align_items(Alignment::End)
       .spacing(4)
+      .push(action::icon(
+        &mut self.settings,
+        "res/baseline_settings_white_48dp.png",
+        action::IconButton::Round,
+      ))
       .push(Space::with_width(Length::Fill))
-      .push(action::text(&mut self.first_action, "LAYOUT", true))
-      .push(action::text(&mut self.second_action, "CHAT", true))
-      .push(action::text(&mut self.third_action, "SCENE", true))
-      .push(action::text(&mut self.broadcast_action, "START", false))
+      .push(action::text(
+        &mut self.first_action,
+        "LAYOUT",
+        action::LabelButton::Action,
+      ))
+      .push(action::text(
+        &mut self.second_action,
+        "CHAT",
+        action::LabelButton::Action,
+      ))
+      .push(action::text(
+        &mut self.third_action,
+        "SCENE",
+        action::LabelButton::Action,
+      ))
+      .push(action::text(
+        &mut self.broadcast_action,
+        "START",
+        action::LabelButton::Primary,
+      ))
       .into();
 
     let content: Element<_> = Column::new()
