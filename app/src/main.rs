@@ -19,12 +19,17 @@ pub fn main() -> iced::Result {
   })
 }
 
+#[derive(Default)]
 struct App {
   voice_off: button::State,
   camera_off: button::State,
   sound_off: button::State,
   video_off: button::State,
   stream_off: button::State,
+  first_action: button::State,
+  second_action: button::State,
+  third_action: button::State,
+  broadcast_action: button::State,
 }
 
 impl Application for App {
@@ -33,16 +38,7 @@ impl Application for App {
   type Flags = ();
 
   fn new(_flags: ()) -> (App, Command<Self::Message>) {
-    (
-      App {
-        voice_off: button::State::new(),
-        camera_off: button::State::new(),
-        sound_off: button::State::new(),
-        video_off: button::State::new(),
-        stream_off: button::State::new(),
-      },
-      Command::none(),
-    )
+    (App::default(), Command::none())
   }
 
   fn title(&self) -> String {
@@ -69,7 +65,7 @@ impl Application for App {
       .center_x()
       .style(style::PreviewArea);
 
-    let side_actions = Column::new()
+    let side_actions: Element<_> = Column::new()
       .width(Length::Fill)
       .spacing(12)
       .align_items(Alignment::End)
@@ -98,9 +94,8 @@ impl Application for App {
         &mut self.stream_off,
         "res/baseline_pause_circle_white_48dp.png",
         false,
-      ));
-
-    let side_actions: Element<_> = side_actions.into();
+      ))
+      .into();
 
     let main_content: Element<_> = Row::new()
       .width(Length::Fill)
@@ -109,11 +104,24 @@ impl Application for App {
       .push(side_actions)
       .into();
 
+    let bottom_actions: Element<_> = Row::new()
+      .width(Length::Fill)
+      .height(Length::Fill)
+      .align_items(Alignment::End)
+      .spacing(4)
+      .push(Space::with_width(Length::Fill))
+      .push(action::text(&mut self.first_action, "LAYOUT", true))
+      .push(action::text(&mut self.second_action, "CHAT", true))
+      .push(action::text(&mut self.third_action, "SCENE", true))
+      .push(action::text(&mut self.broadcast_action, "START", false))
+      .into();
+
     let content: Element<_> = Column::new()
       .height(Length::Fill)
       .spacing(2)
       .push(main_content)
       .push(text)
+      .push(bottom_actions)
       .into();
 
     let content = if cfg!(debug_assertions) {
