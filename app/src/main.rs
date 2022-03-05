@@ -1,6 +1,6 @@
 use iced::{
-  executor, window, Alignment, Application, Column, Command, Container, Element, Length, Row,
-  Settings, Space, Text,
+  executor, window, Alignment, Application, Color, Column, Command, Container, Element, Length,
+  Row, Settings, Space, Text,
 };
 use std::env;
 
@@ -66,6 +66,12 @@ impl Application for Hello {
       .push(main_content)
       .push(text)
       .into();
+
+    let content = if cfg!(debug_assertions) {
+      content.explain(Color::BLACK)
+    } else {
+      content
+    };
 
     Container::new(content)
       .width(Length::Fill)
