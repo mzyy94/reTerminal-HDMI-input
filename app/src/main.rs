@@ -1,9 +1,10 @@
 use iced::{
-  button, executor, image, window, Alignment, Application, Button, Color, Column, Command,
-  Container, Element, Image, Length, Row, Settings, Space, Text,
+  button, executor, window, Alignment, Application, Color, Column, Command, Container, Element,
+  Length, Row, Settings, Space, Text,
 };
 use std::env;
 
+mod action;
 mod style;
 
 pub fn main() -> iced::Result {
@@ -68,46 +69,32 @@ impl Application for App {
       .center_x()
       .style(style::PreviewArea);
 
-    let action_button = |state, icon, active| {
-      let image = Image::<image::Handle>::new(icon);
-      let button = Button::new(state, image).style(if active {
-        style::Button::Active
-      } else {
-        style::Button::Inactive
-      });
-
-      button
-        .padding(8)
-        .width(Length::Units(90))
-        .height(Length::Units(80))
-    };
-
     let side_actions = Column::new()
       .width(Length::Fill)
       .spacing(12)
       .align_items(Alignment::End)
       .push(Space::with_height(Length::Units(104)))
-      .push(action_button(
+      .push(action::icon(
         &mut self.voice_off,
         "res/baseline_mic_off_white_48dp.png",
         true,
       ))
-      .push(action_button(
+      .push(action::icon(
         &mut self.camera_off,
         "res/baseline_videocam_off_white_48dp.png",
         false,
       ))
-      .push(action_button(
+      .push(action::icon(
         &mut self.sound_off,
         "res/baseline_volume_off_white_48dp.png",
         false,
       ))
-      .push(action_button(
+      .push(action::icon(
         &mut self.video_off,
         "res/baseline_movie_white_48dp.png",
         false,
       ))
-      .push(action_button(
+      .push(action::icon(
         &mut self.stream_off,
         "res/baseline_pause_circle_white_48dp.png",
         false,
