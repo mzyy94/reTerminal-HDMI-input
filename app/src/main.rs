@@ -1,6 +1,6 @@
 use iced::{
-  button, executor, image, window, Alignment, Application, Color, Column, Command, Container,
-  Element, Image, Length, Row, Settings, Space, Subscription, Text,
+  button, executor, image, window, Alignment, Application, Column, Command, Container, Element,
+  Image, Length, Row, Settings, Space, Subscription, Text,
 };
 use iced_native::subscription;
 
@@ -197,11 +197,8 @@ impl Application for App {
       .push(bottom_actions)
       .into();
 
-    let content = if cfg!(debug_assertions) {
-      content.explain(Color::BLACK)
-    } else {
-      content
-    };
+    #[cfg(feature = "debug")]
+    let content = content.explain(iced::Color::BLACK);
 
     Container::new(content)
       .width(Length::Fill)

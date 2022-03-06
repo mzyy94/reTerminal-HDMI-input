@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 default = ["nativesrc"]
+debug = []
 nativesrc = []
 testsrc = []
 
