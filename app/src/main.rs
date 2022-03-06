@@ -1,6 +1,6 @@
 use iced::{
-  button, executor, window, Alignment, Application, Color, Column, Command, Container, Element,
-  Length, Row, Settings, Space, Text,
+  button, executor, image, window, Alignment, Application, Color, Column, Command, Container,
+  Element, Image, Length, Row, Settings, Space, Text,
 };
 use std::env;
 
@@ -21,6 +21,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct App {
+  frame: Option<image::Handle>,
   voice_off: button::State,
   camera_off: button::State,
   sound_off: button::State,
@@ -62,7 +63,15 @@ impl Application for App {
   fn view(&mut self) -> Element<Self::Message> {
     let text = Text::new("Hello, world!");
 
-    let video_area = Container::new(Space::new(Length::Units(1024), Length::Units(576)))
+    let image = match self.frame.clone() {
+      Some(frame) => Image::new(frame),
+      None => Image::new("res/colorbar.png"),
+    }
+    .width(Length::Units(1024))
+    .height(Length::Units(576));
+
+    let video_area = Container::new(image)
+      .padding(12)
       .center_x()
       .style(style::PreviewArea);
 
