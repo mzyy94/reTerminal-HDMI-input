@@ -1,9 +1,23 @@
-use iced::{alignment, button, image, Background, Button, Color, Font, Image, Length, Text};
+use iced::{alignment, button, Background, Button, Color, Font, Length, Text};
 
 pub enum IconButton {
   Active,
   Inactive,
   Round,
+}
+
+const ICONS: Font = Font::External {
+  name: "MaterialIcons",
+  bytes: include_bytes!("../res/MaterialIcons-Regular.ttf"),
+};
+
+pub enum Icon {
+  MicOff,
+  VideoCamOff,
+  VolumeOff,
+  Movie,
+  PauseCircle,
+  Settings,
 }
 
 impl button::StyleSheet for IconButton {
@@ -30,8 +44,21 @@ impl button::StyleSheet for IconButton {
   }
 }
 
-pub fn icon<'a>(state: &'a mut button::State, icon: &str, style: IconButton) -> Button<'a, ()> {
-  let image = Image::<image::Handle>::new(icon);
+pub fn icon<'a>(state: &'a mut button::State, icon: Icon, style: IconButton) -> Button<'a, ()> {
+  let unicode = match icon {
+    Icon::MicOff => '\u{e02b}',
+    Icon::VideoCamOff => '\u{e04c}',
+    Icon::VolumeOff => '\u{e04f}',
+    Icon::Movie => '\u{e02c}',
+    Icon::PauseCircle => '\u{e1a2}',
+    Icon::Settings => '\u{e8b8}',
+  };
+  let text = Text::new(unicode.to_string())
+    .font(ICONS)
+    .width(Length::Units(64))
+    .horizontal_alignment(alignment::Horizontal::Center)
+    .vertical_alignment(alignment::Vertical::Center)
+    .size(64);
   let width = match style {
     IconButton::Round => 100,
     _ => 90,
@@ -40,7 +67,7 @@ pub fn icon<'a>(state: &'a mut button::State, icon: &str, style: IconButton) -> 
     IconButton::Round => 100,
     _ => 80,
   };
-  let button = Button::new(state, image).style(style);
+  let button = Button::new(state, text).style(style);
 
   button
     .padding(8)

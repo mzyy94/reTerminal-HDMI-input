@@ -82,27 +82,27 @@ impl Application for App {
       .push(Space::with_height(Length::Units(104)))
       .push(action::icon(
         &mut self.voice_off,
-        "res/baseline_mic_off_white_48dp.png",
+        action::Icon::MicOff,
         action::IconButton::Active,
       ))
       .push(action::icon(
         &mut self.camera_off,
-        "res/baseline_videocam_off_white_48dp.png",
+        action::Icon::VideoCamOff,
         action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.sound_off,
-        "res/baseline_volume_off_white_48dp.png",
+        action::Icon::VolumeOff,
         action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.video_off,
-        "res/baseline_movie_white_48dp.png",
+        action::Icon::Movie,
         action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.stream_off,
-        "res/baseline_pause_circle_white_48dp.png",
+        action::Icon::PauseCircle,
         action::IconButton::Inactive,
       ))
       .into();
@@ -121,7 +121,7 @@ impl Application for App {
       .spacing(4)
       .push(action::icon(
         &mut self.settings,
-        "res/baseline_settings_white_48dp.png",
+        action::Icon::Settings,
         action::IconButton::Round,
       ))
       .push(Space::with_width(Length::Fill))
