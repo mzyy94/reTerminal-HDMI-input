@@ -44,7 +44,10 @@ impl button::StyleSheet for IconButton {
   }
 }
 
-pub fn icon<'a>(state: &'a mut button::State, icon: Icon, style: IconButton) -> Button<'a, ()> {
+pub fn icon<'a, T>(state: &'a mut button::State, icon: Icon, style: IconButton) -> Button<'a, T>
+where
+  T: Clone,
+{
   let unicode = match icon {
     Icon::MicOff => '\u{e02b}',
     Icon::VideoCamOff => '\u{e04c}',
@@ -102,7 +105,10 @@ impl button::StyleSheet for LabelButton {
   }
 }
 
-pub fn text<'a>(state: &'a mut button::State, text: &str, style: LabelButton) -> Button<'a, ()> {
+pub fn text<'a, T>(state: &'a mut button::State, text: &str, style: LabelButton) -> Button<'a, T>
+where
+  T: Clone,
+{
   let text = Text::new(text)
     .size(60)
     .font(ROBOTO)

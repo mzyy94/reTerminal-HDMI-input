@@ -34,9 +34,14 @@ struct App {
   settings: button::State,
 }
 
+#[derive(Debug, Clone)]
+pub enum Message {
+  Frame(image::Handle),
+}
+
 impl Application for App {
   type Executor = executor::Default;
-  type Message = ();
+  type Message = Message;
   type Flags = ();
 
   fn new(_flags: ()) -> (App, Command<Self::Message>) {
@@ -56,11 +61,16 @@ impl Application for App {
     }
   }
 
-  fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
+  fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    match message {
+      Message::Frame(frame) => {
+        self.frame = Some(frame);
+      }
+    }
     Command::none()
   }
 
-  fn view(&mut self) -> Element<Self::Message> {
+  fn view(&mut self) -> Element<Message> {
     let text = Text::new("Hello, world!");
 
     let image = match self.frame.clone() {
