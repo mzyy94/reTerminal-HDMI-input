@@ -1,10 +1,15 @@
 use iced::{
   button, executor, image, window, Alignment, Application, Color, Column, Command, Container,
-  Element, Image, Length, Row, Settings, Space, Text,
+  Element, Image, Length, Row, Settings, Space, Subscription, Text,
 };
+use iced_native::subscription;
+
 use std::env;
+use std::sync::mpsc;
+use std::thread;
 
 mod action;
+mod pipeline;
 mod style;
 
 pub fn main() -> iced::Result {
@@ -59,6 +64,33 @@ impl Application for App {
     } else {
       window::Mode::Windowed
     }
+  }
+
+  fn subscription(&self) -> Subscription<Self::Message> {
+    struct PipelineType;
+
+    subscription::unfold(
+      std::any::TypeId::of::<PipelineType>(),
+      pipeline::State::Create,
+      |state| async move {
+        match state {
+          pipeline::State::Create => {
+            let (sender, receiver) = mpsc::channel();
+            thread::spawn(move || {
+              match pipeline::create_pipeline(sender).and_then(pipeline::main_loop) {
+                Ok(r) => r,
+                Err(e) => eprintln!("Failed to start pipeline. {}", e),
+              };
+            });
+            (None, pipeline::State::Running(receiver))
+          }
+          pipeline::State::Running(receiver) => {
+            (receiver.recv().ok(), pipeline::State::Running(receiver))
+          }
+        }
+      },
+    )
+    .map(Message::Frame)
   }
 
   fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
