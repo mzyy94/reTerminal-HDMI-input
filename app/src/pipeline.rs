@@ -28,23 +28,31 @@ pub fn create_pipeline(sender: mpsc::Sender<image::Handle>) -> Result<gst::Pipel
     let pipeline = gst::Pipeline::new(None);
     let src = gst::ElementFactory::make("videotestsrc", None)
         .map_err(|_| MissingElement("videotestsrc"))?;
+    let upload =
+        gst::ElementFactory::make("glupload", None).map_err(|_| MissingElement("glupload"))?;
+    let colorconvert = gst::ElementFactory::make("glcolorconvert", None)
+        .map_err(|_| MissingElement("glcolorconvert"))?;
+    let download =
+        gst::ElementFactory::make("gldownload", None).map_err(|_| MissingElement("gldownload"))?;
+    let capsfilter =
+        gst::ElementFactory::make("capsfilter", None).map_err(|_| MissingElement("capsfilter"))?;
     let sink = gst::ElementFactory::make("appsink", None).map_err(|_| MissingElement("appsink"))?;
 
     src.set_property_from_str("pattern", "ball");
-    pipeline.add_many(&[&src, &sink])?;
-    src.link(&sink)?;
+    pipeline.add_many(&[&src, &upload, &colorconvert, &download, &capsfilter, &sink])?;
+    gst::Element::link_many(&[&src, &upload, &colorconvert, &download, &capsfilter, &sink])?;
 
     let appsink = sink
         .dynamic_cast::<gst_app::AppSink>()
         .expect("Sink element is expected to be an appsink!");
 
-    appsink.set_caps(Some(
-        &gst::Caps::builder("video/x-raw")
-            .field("width", 1280)
-            .field("height", 720)
-            .field("format", gst_video::VideoFormat::Bgra.to_str())
-            .build(),
-    ));
+    let caps = gst::Caps::builder("video/x-raw")
+        .field("width", 1280i32)
+        .field("height", 720i32)
+        .field("framerate", gst::Fraction::new(30, 1))
+        .field("format", gst_video::VideoFormat::Bgra.to_str())
+        .build();
+    capsfilter.set_property("caps", &caps);
 
     appsink.set_callbacks(
         gst_app::AppSinkCallbacks::builder()
