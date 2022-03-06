@@ -26,6 +26,9 @@ pub fn create_pipeline(sender: mpsc::Sender<image::Handle>) -> Result<gst::Pipel
     gst::init()?;
 
     let pipeline = gst::Pipeline::new(None);
+    #[cfg(feature = "nativesrc")]
+    let src = gst::ElementFactory::make("v4l2src", None).map_err(|_| MissingElement("v4l2src"))?;
+    #[cfg(feature = "testsrc")]
     let src = gst::ElementFactory::make("videotestsrc", None)
         .map_err(|_| MissingElement("videotestsrc"))?;
     let upload =
@@ -38,7 +41,6 @@ pub fn create_pipeline(sender: mpsc::Sender<image::Handle>) -> Result<gst::Pipel
         gst::ElementFactory::make("capsfilter", None).map_err(|_| MissingElement("capsfilter"))?;
     let sink = gst::ElementFactory::make("appsink", None).map_err(|_| MissingElement("appsink"))?;
 
-    src.set_property_from_str("pattern", "ball");
     pipeline.add_many(&[&src, &upload, &colorconvert, &download, &capsfilter, &sink])?;
     gst::Element::link_many(&[&src, &upload, &colorconvert, &download, &capsfilter, &sink])?;
 
