@@ -46,7 +46,7 @@ struct App {
 #[derive(Debug, Clone)]
 pub enum Message {
   Event(Event),
-  Frame(image::Handle),
+  Sample((Option<image::Handle>, Option<f32>)),
 }
 
 impl Application for App {
@@ -81,33 +81,37 @@ impl Application for App {
         |state| async move {
           match state {
             stream::State::Create => {
-              let (sender, receiver) = mpsc::channel();
+              let (frame_tx, frame_rx) = mpsc::channel();
+              let (sound_tx, sound_rx) = mpsc::channel();
               thread::spawn(move || {
                 match stream::Stream::new()
-                  .create_videopipeline(sender)
+                  .create_videopipeline(frame_tx)
+                  .and_then(|s| s.create_audiopipeline(sound_tx))
                   .and_then(|s| s.main_loop())
                 {
                   Ok(r) => r,
                   Err(e) => eprintln!("Failed to start pipeline. {}", e),
                 };
               });
-              (None, stream::State::Running(receiver))
+              (None, stream::State::Running(frame_rx, sound_rx))
             }
-            stream::State::Running(receiver) => {
-              (receiver.recv().ok(), stream::State::Running(receiver))
-            }
+            stream::State::Running(frame_rx, sound_rx) => (
+              Some((frame_rx.recv().ok(), sound_rx.recv().ok())),
+              stream::State::Running(frame_rx, sound_rx),
+            ),
           }
         },
       )
-      .map(Message::Frame),
+      .map(Message::Sample),
       subscription::events().map(Message::Event),
     ])
   }
 
   fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
     match message {
-      Message::Frame(frame) => {
-        self.frame = Some(frame);
+      Message::Sample((frame, sound)) => {
+        self.frame = frame;
+        self.level_left = sound.unwrap_or(self.level_left);
       }
       Message::Event(event) => {
         if let Event::Keyboard(keyboard::Event::KeyReleased {

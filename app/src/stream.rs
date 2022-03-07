@@ -26,6 +26,12 @@ pub struct Stream {
     pipeline: gst::Pipeline,
 }
 
+impl Default for Stream {
+    fn default() -> Self {
+        Stream::new()
+    }
+}
+
 impl Stream {
     pub fn new() -> Self {
         gst::init().unwrap();
@@ -114,6 +120,87 @@ impl Stream {
         Ok(self)
     }
 
+    pub fn create_audiopipeline(self, sender: mpsc::Sender<f32>) -> Result<Self, Error> {
+        #[cfg(feature = "nativesrc")]
+        let src =
+            gst::ElementFactory::make("alsasrc", None).map_err(|_| MissingElement("alsasrc"))?;
+        #[cfg(feature = "testsrc")]
+        let src = gst::ElementFactory::make("audiotestsrc", None)
+            .map_err(|_| MissingElement("audiotestsrc"))?;
+        let convert = gst::ElementFactory::make("audioconvert", None)
+            .map_err(|_| MissingElement("audioconvert"))?;
+        let sink =
+            gst::ElementFactory::make("appsink", None).map_err(|_| MissingElement("appsink"))?;
+
+        self.pipeline.add_many(&[&src, &convert, &sink])?;
+        gst::Element::link_many(&[&src, &convert, &sink])?;
+
+        let appsink = sink
+            .dynamic_cast::<gst_app::AppSink>()
+            .expect("Sink element is expected to be an appsink!");
+
+        appsink.set_caps(Some(
+            &gst::Caps::builder("audio/x-raw")
+                .field("format", gst_audio::AUDIO_FORMAT_S16.to_str())
+                .field("layout", "interleaved")
+                .field("channels", 1i32)
+                .field("rate", gst::IntRange::<i32>::new(1, i32::MAX))
+                .build(),
+        ));
+
+        appsink.set_callbacks(
+            gst_app::AppSinkCallbacks::builder()
+                .new_sample(move |appsink| {
+                    let sample = appsink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
+
+                    let buffer = sample.buffer().ok_or_else(|| {
+                        element_error!(
+                            appsink,
+                            gst::ResourceError::Failed,
+                            ("Failed to get buffer from appsink")
+                        );
+
+                        gst::FlowError::Error
+                    })?;
+
+                    let map = buffer.map_readable().map_err(|_| {
+                        element_error!(
+                            appsink,
+                            gst::ResourceError::Failed,
+                            ("Failed to map buffer readable")
+                        );
+
+                        gst::FlowError::Error
+                    })?;
+
+                    let samples = map.as_slice_of::<i16>().map_err(|_| {
+                        element_error!(
+                            appsink,
+                            gst::ResourceError::Failed,
+                            ("Failed to interprete buffer as S16 PCM")
+                        );
+                        gst::FlowError::Error
+                    })?;
+
+                    let sum: f32 = samples
+                        .iter()
+                        .map(|sample| {
+                            let f = f32::from(*sample) / f32::from(i16::MAX);
+                            f * f
+                        })
+                        .sum();
+                    let rms = (sum / (samples.len() as f32)).sqrt();
+
+                    sender.send(rms).unwrap();
+
+                    Ok(gst::FlowSuccess::Ok)
+                })
+                .build(),
+        );
+
+        Ok(self)
+    }
+
     pub fn main_loop(self) -> Result<(), Error> {
         self.pipeline.set_state(gst::State::Playing)?;
 
@@ -152,5 +239,5 @@ impl Stream {
 
 pub enum State {
     Create,
-    Running(mpsc::Receiver<image::Handle>),
+    Running(mpsc::Receiver<image::Handle>, mpsc::Receiver<f32>),
 }

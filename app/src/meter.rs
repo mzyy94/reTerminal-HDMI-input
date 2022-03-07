@@ -63,22 +63,22 @@ where
 
     let height = layout.bounds().height;
     renderer.fill_quad(make_quad(0.0, 0.3, height), Color::from_rgb8(192, 0, 0));
-    if self.level > 85.0 {
-      let h = (self.level - 85.0) * 0.01;
+    if self.level > 0.85 {
+      let h = self.level - 0.85;
       let offset = 0.15 - h;
       renderer.fill_quad(make_quad(offset, h, height), Color::from_rgb8(255, 0, 0));
       renderer.fill_quad(make_quad(0.15, 0.20, height), Color::from_rgb8(255, 255, 0));
       renderer.fill_quad(make_quad(0.35, 0.65, height), Color::from_rgb8(0, 255, 0));
     } else {
       renderer.fill_quad(make_quad(0.15, 0.20, height), Color::from_rgb8(192, 192, 0));
-      if self.level > 65.0 {
-        let h = (self.level - 65.0) * 0.01;
+      if self.level > 0.65 {
+        let h = self.level - 0.65;
         let offset = 0.35 - h;
         renderer.fill_quad(make_quad(offset, h, height), Color::from_rgb8(255, 255, 0));
         renderer.fill_quad(make_quad(0.35, 0.65, height), Color::from_rgb8(0, 255, 0));
       } else {
         renderer.fill_quad(make_quad(0.35, 0.65, height), Color::from_rgb8(0, 192, 0));
-        let h = self.level * 0.01;
+        let h = self.level;
         let offset = 1. - h;
         renderer.fill_quad(make_quad(offset, h, height), Color::from_rgb8(0, 255, 0));
       }
