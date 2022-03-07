@@ -83,7 +83,10 @@ impl Application for App {
             pipeline::State::Create => {
               let (sender, receiver) = mpsc::channel();
               thread::spawn(move || {
-                match pipeline::create_pipeline(sender).and_then(pipeline::main_loop) {
+                match pipeline::Stream::new()
+                  .create_videopipeline(sender)
+                  .and_then(|s| s.main_loop())
+                {
                   Ok(r) => r,
                   Err(e) => eprintln!("Failed to start pipeline. {}", e),
                 };
