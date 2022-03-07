@@ -9,6 +9,7 @@ use std::sync::mpsc;
 use std::thread;
 
 mod action;
+mod meter;
 mod pipeline;
 mod style;
 
@@ -27,6 +28,8 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct App {
   frame: Option<image::Handle>,
+  level_left: f32,
+  level_right: f32,
   voice_off: button::State,
   camera_off: button::State,
   sound_off: button::State,
@@ -112,6 +115,21 @@ impl Application for App {
     .width(Length::Units(1024))
     .height(Length::Units(576));
 
+    let meters: Element<_> = Container::new(
+      Row::new()
+        .width(Length::Fill)
+        .spacing(12)
+        .align_items(Alignment::Start)
+        .push(meter::LevelMeter::new(self.level_left).height(Length::Units(576 - 12)))
+        .push(meter::LevelMeter::new(self.level_right).height(Length::Units(576 - 12))),
+    )
+    .padding(12)
+    .center_x()
+    .style(style::MeterArea)
+    .into();
+
+    let meter_area = Container::new(meters).padding(12).center_x();
+
     let video_area = Container::new(image)
       .padding(12)
       .center_x()
@@ -152,6 +170,7 @@ impl Application for App {
     let main_content: Element<_> = Row::new()
       .width(Length::Fill)
       .align_items(Alignment::Start)
+      .push(meter_area)
       .push(video_area)
       .push(side_actions)
       .into();

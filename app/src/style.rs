@@ -23,3 +23,16 @@ impl container::StyleSheet for PreviewArea {
     }
   }
 }
+
+pub struct MeterArea;
+
+impl container::StyleSheet for MeterArea {
+  fn style(&self) -> container::Style {
+    container::Style {
+      background: Some(Background::Color(Color::from_rgb8(115, 132, 149))),
+      text_color: Some(Color::WHITE),
+      border_radius: 8.0,
+      ..container::Style::default()
+    }
+  }
+}
