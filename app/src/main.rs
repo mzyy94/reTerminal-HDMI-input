@@ -9,6 +9,7 @@ use std::sync::mpsc;
 use std::thread;
 
 mod action;
+mod font;
 mod meter;
 mod pipeline;
 mod style;
@@ -135,7 +136,7 @@ impl Application for App {
       .push(meter_area)
       .push(action::icon(
         &mut self.settings,
-        action::Icon::Settings,
+        font::Icon::Settings,
         action::IconButton::Round,
       ));
 
@@ -151,27 +152,27 @@ impl Application for App {
       .push(Space::with_height(Length::Units(104)))
       .push(action::icon(
         &mut self.voice_off,
-        action::Icon::MicOff,
+        font::Icon::MicOff,
         action::IconButton::Active,
       ))
       .push(action::icon(
         &mut self.camera_off,
-        action::Icon::VideoCamOff,
+        font::Icon::VideoCamOff,
         action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.sound_off,
-        action::Icon::VolumeOff,
+        font::Icon::VolumeOff,
         action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.video_off,
-        action::Icon::Movie,
+        font::Icon::Movie,
         action::IconButton::Inactive,
       ))
       .push(action::icon(
         &mut self.stream_off,
-        action::Icon::PauseCircle,
+        font::Icon::PauseCircle,
         action::IconButton::Inactive,
       ))
       .into();

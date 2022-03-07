@@ -1,23 +1,10 @@
-use iced::{alignment, button, Background, Button, Color, Font, Length, Text};
+use crate::font::{Icon, ICONS, ROBOTO};
+use iced::{alignment, button, Background, Button, Color, Length, Text};
 
 pub enum IconButton {
   Active,
   Inactive,
   Round,
-}
-
-const ICONS: Font = Font::External {
-  name: "MaterialIcons",
-  bytes: include_bytes!("../res/MaterialIcons-Regular.ttf"),
-};
-
-pub enum Icon {
-  MicOff,
-  VideoCamOff,
-  VolumeOff,
-  Movie,
-  PauseCircle,
-  Settings,
 }
 
 impl button::StyleSheet for IconButton {
@@ -52,15 +39,7 @@ pub fn icon<'a, T>(state: &'a mut button::State, icon: Icon, style: IconButton) 
 where
   T: Clone,
 {
-  let unicode = match icon {
-    Icon::MicOff => '\u{e02b}',
-    Icon::VideoCamOff => '\u{e04c}',
-    Icon::VolumeOff => '\u{e04f}',
-    Icon::Movie => '\u{e02c}',
-    Icon::PauseCircle => '\u{e1a2}',
-    Icon::Settings => '\u{e8b8}',
-  };
-  let text = Text::new(unicode.to_string())
+  let text = Text::new(icon)
     .font(ICONS)
     .width(Length::Units(64))
     .horizontal_alignment(alignment::Horizontal::Center)
@@ -81,11 +60,6 @@ where
     .width(Length::Units(width))
     .height(Length::Units(height))
 }
-
-const ROBOTO: Font = Font::External {
-  name: "Roboto",
-  bytes: include_bytes!("../res/Roboto-Black.ttf"),
-};
 
 pub enum LabelButton {
   Action,
