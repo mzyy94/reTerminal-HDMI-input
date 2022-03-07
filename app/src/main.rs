@@ -1,6 +1,6 @@
 use iced::{
-  button, executor, image, window, Alignment, Application, Column, Command, Container, Element,
-  Image, Length, Row, Settings, Space, Subscription, Text,
+  alignment, button, executor, image, window, Alignment, Application, Color, Column, Command,
+  Container, Element, Image, Length, Row, Settings, Space, Subscription, Text,
 };
 use iced_native::subscription;
 
@@ -107,8 +107,6 @@ impl Application for App {
   }
 
   fn view(&mut self) -> Element<Message> {
-    let text = Text::new("Hello, world!");
-
     let image = match self.frame.clone() {
       Some(frame) => Image::new(frame),
       None => Image::new("res/colorbar.png"),
@@ -184,6 +182,39 @@ impl Application for App {
       .push(side_actions)
       .into();
 
+    let text = |text: &str| -> Text {
+      Text::new(text)
+        .size(40)
+        .height(Length::Units(40))
+        .color(Color::WHITE)
+        .vertical_alignment(alignment::Vertical::Center)
+        .horizontal_alignment(alignment::Horizontal::Right)
+    };
+
+    let icon = |icon: font::Icon| -> Text {
+      Text::new(icon)
+        .size(40)
+        .font(font::ICONS)
+        .color(Color::WHITE)
+        .vertical_alignment(alignment::Vertical::Center)
+        .horizontal_alignment(alignment::Horizontal::Center)
+    };
+
+    let status_area: Element<_> = Row::new()
+      .width(Length::Fill)
+      .height(Length::Fill)
+      .align_items(Alignment::Center)
+      .spacing(10)
+      .push(icon(font::Icon::DeveloperBoard))
+      .push(text("100%").width(Length::Units(90)))
+      .push(icon(font::Icon::NetworkCheck))
+      .push(text("1000 ms").width(Length::Units(150)))
+      .push(icon(font::Icon::AvTimer))
+      .push(text("00:00:00").width(Length::Units(150)))
+      .push(icon(font::Icon::CloudUpload))
+      .push(text("rtmp.stream.example.com").horizontal_alignment(alignment::Horizontal::Left))
+      .into();
+
     let bottom_actions: Element<_> = Row::new()
       .width(Length::Fill)
       .height(Length::Fill)
@@ -216,7 +247,7 @@ impl Application for App {
       .height(Length::Fill)
       .spacing(2)
       .push(main_content)
-      .push(text)
+      .push(status_area)
       .push(bottom_actions)
       .into();
 

@@ -17,6 +17,10 @@ pub enum Icon {
   Movie,
   PauseCircle,
   Settings,
+  NetworkCheck,
+  AvTimer,
+  CloudUpload,
+  DeveloperBoard,
 }
 
 impl ToString for Icon {
@@ -28,6 +32,10 @@ impl ToString for Icon {
       Icon::Movie => '\u{e02c}',
       Icon::PauseCircle => '\u{e1a2}',
       Icon::Settings => '\u{e8b8}',
+      Icon::NetworkCheck => '\u{e640}',
+      Icon::AvTimer => '\u{e01b}',
+      Icon::CloudUpload => '\u{e2c3}',
+      Icon::DeveloperBoard => '\u{e30d}',
     }
     .to_string()
   }
