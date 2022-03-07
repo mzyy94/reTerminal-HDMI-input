@@ -11,7 +11,7 @@ use std::thread;
 mod action;
 mod font;
 mod meter;
-mod pipeline;
+mod stream;
 mod style;
 
 pub fn main() -> iced::Result {
@@ -77,13 +77,13 @@ impl Application for App {
     Subscription::batch([
       subscription::unfold(
         std::any::TypeId::of::<PipelineType>(),
-        pipeline::State::Create,
+        stream::State::Create,
         |state| async move {
           match state {
-            pipeline::State::Create => {
+            stream::State::Create => {
               let (sender, receiver) = mpsc::channel();
               thread::spawn(move || {
-                match pipeline::Stream::new()
+                match stream::Stream::new()
                   .create_videopipeline(sender)
                   .and_then(|s| s.main_loop())
                 {
@@ -91,10 +91,10 @@ impl Application for App {
                   Err(e) => eprintln!("Failed to start pipeline. {}", e),
                 };
               });
-              (None, pipeline::State::Running(receiver))
+              (None, stream::State::Running(receiver))
             }
-            pipeline::State::Running(receiver) => {
-              (receiver.recv().ok(), pipeline::State::Running(receiver))
+            stream::State::Running(receiver) => {
+              (receiver.recv().ok(), stream::State::Running(receiver))
             }
           }
         },
