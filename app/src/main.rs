@@ -130,6 +130,15 @@ impl Application for App {
 
     let meter_area = Container::new(meters).padding(12).center_x();
 
+    let left_content = Column::new()
+      .align_items(Alignment::Center)
+      .push(meter_area)
+      .push(action::icon(
+        &mut self.settings,
+        action::Icon::Settings,
+        action::IconButton::Round,
+      ));
+
     let video_area = Container::new(image)
       .padding(12)
       .center_x()
@@ -170,7 +179,6 @@ impl Application for App {
     let main_content: Element<_> = Row::new()
       .width(Length::Fill)
       .align_items(Alignment::Start)
-      .push(meter_area)
       .push(video_area)
       .push(side_actions)
       .into();
@@ -180,11 +188,6 @@ impl Application for App {
       .height(Length::Fill)
       .align_items(Alignment::End)
       .spacing(4)
-      .push(action::icon(
-        &mut self.settings,
-        action::Icon::Settings,
-        action::IconButton::Round,
-      ))
       .push(Space::with_width(Length::Fill))
       .push(action::text(
         &mut self.first_action,
@@ -208,12 +211,18 @@ impl Application for App {
       ))
       .into();
 
-    let content: Element<_> = Column::new()
+    let right_content: Element<_> = Column::new()
       .height(Length::Fill)
       .spacing(2)
       .push(main_content)
       .push(text)
       .push(bottom_actions)
+      .into();
+
+    let content: Element<_> = Row::new()
+      .height(Length::Fill)
+      .push(left_content)
+      .push(right_content)
       .into();
 
     #[cfg(feature = "debug")]
