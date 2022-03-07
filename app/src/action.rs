@@ -24,23 +24,27 @@ impl button::StyleSheet for IconButton {
   fn active(&self) -> button::Style {
     match self {
       IconButton::Active => button::Style {
-        background: Some(Background::Color(Color::from_rgb8(114, 202, 255))),
+        background: Some(Background::Color(Color::from_rgb8(94, 182, 238))),
         text_color: Color::WHITE,
         ..button::Style::default()
       },
       IconButton::Inactive => button::Style {
-        background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
+        background: Some(Background::Color(Color::from_rgb8(180, 180, 180))),
         text_color: Color::WHITE,
         ..button::Style::default()
       },
 
       IconButton::Round => button::Style {
-        background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
+        background: Some(Background::Color(Color::from_rgb8(119, 139, 143))),
         text_color: Color::WHITE,
         border_radius: 80.0,
         ..button::Style::default()
       },
     }
+  }
+
+  fn disabled(&self) -> button::Style {
+    self.active()
   }
 }
 
@@ -102,6 +106,10 @@ impl button::StyleSheet for LabelButton {
         ..button::Style::default()
       },
     }
+  }
+
+  fn disabled(&self) -> button::Style {
+    self.active()
   }
 }
 
