@@ -3,9 +3,9 @@ use iced::{
   Container, Element, Image, Length, Row, Settings, Space, Subscription, Text,
 };
 use iced_native::{keyboard, subscription, Event};
+use single_value_channel::channel_starting_with;
 
 use std::env;
-use std::sync::mpsc;
 use std::thread;
 
 mod action;
@@ -81,8 +81,9 @@ impl Application for App {
         |state| async move {
           match state {
             stream::State::Create => {
-              let (frame_tx, frame_rx) = mpsc::channel();
-              let (sound_tx, sound_rx) = mpsc::channel();
+              let (frame_rx, frame_tx) =
+                channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
+              let (sound_rx, sound_tx) = channel_starting_with(0f32);
               thread::spawn(move || {
                 match stream::Stream::new()
                   .create_videopipeline(frame_tx)
@@ -95,8 +96,11 @@ impl Application for App {
               });
               (None, stream::State::Running(frame_rx, sound_rx))
             }
-            stream::State::Running(frame_rx, sound_rx) => (
-              Some((frame_rx.recv().ok(), sound_rx.recv().ok())),
+            stream::State::Running(mut frame_rx, mut sound_rx) => (
+              Some((
+                Some((*frame_rx.latest_mut()).clone()),
+                Some(*sound_rx.latest()),
+              )),
               stream::State::Running(frame_rx, sound_rx),
             ),
           }

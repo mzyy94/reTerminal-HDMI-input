@@ -7,7 +7,7 @@ use anyhow::Error;
 use derive_more::{Display, Error};
 
 use iced::image;
-use std::sync::mpsc;
+use single_value_channel::{Receiver, Updater};
 
 #[derive(Debug, Display, Error)]
 #[display(fmt = "Missing element {}", _0)]
@@ -40,7 +40,7 @@ impl Stream {
         Stream { pipeline }
     }
 
-    pub fn create_videopipeline(self, sender: mpsc::Sender<image::Handle>) -> Result<Self, Error> {
+    pub fn create_videopipeline(self, sender: Updater<image::Handle>) -> Result<Self, Error> {
         #[cfg(feature = "nativesrc")]
         let src =
             gst::ElementFactory::make("v4l2src", None).map_err(|_| MissingElement("v4l2src"))?;
@@ -110,7 +110,7 @@ impl Stream {
                     })?;
 
                     let handle = image::Handle::from_pixels(1280, 720, samples.to_vec());
-                    sender.send(handle).unwrap();
+                    sender.update(handle).unwrap();
 
                     Ok(gst::FlowSuccess::Ok)
                 })
@@ -120,7 +120,7 @@ impl Stream {
         Ok(self)
     }
 
-    pub fn create_audiopipeline(self, sender: mpsc::Sender<f32>) -> Result<Self, Error> {
+    pub fn create_audiopipeline(self, sender: Updater<f32>) -> Result<Self, Error> {
         #[cfg(feature = "nativesrc")]
         let src =
             gst::ElementFactory::make("alsasrc", None).map_err(|_| MissingElement("alsasrc"))?;
@@ -191,7 +191,7 @@ impl Stream {
                         .sum();
                     let rms = (sum / (samples.len() as f32)).sqrt();
 
-                    sender.send(rms).unwrap();
+                    sender.update(rms).unwrap();
 
                     Ok(gst::FlowSuccess::Ok)
                 })
@@ -239,5 +239,5 @@ impl Stream {
 
 pub enum State {
     Create,
-    Running(mpsc::Receiver<image::Handle>, mpsc::Receiver<f32>),
+    Running(Receiver<image::Handle>, Receiver<f32>),
 }
