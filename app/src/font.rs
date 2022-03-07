@@ -10,6 +10,11 @@ pub const ROBOTO: Font = Font::External {
   bytes: include_bytes!("../res/Roboto-Black.ttf"),
 };
 
+pub const ROBOTOMONO: Font = Font::External {
+  name: "RobotoMono",
+  bytes: include_bytes!("../res/RobotoMono-Regular.ttf"),
+};
+
 pub enum Icon {
   MicOff,
   VideoCamOff,

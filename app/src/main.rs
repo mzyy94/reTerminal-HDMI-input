@@ -186,6 +186,7 @@ impl Application for App {
       Text::new(text)
         .size(40)
         .height(Length::Units(40))
+        .font(font::ROBOTOMONO)
         .color(Color::WHITE)
         .vertical_alignment(alignment::Vertical::Center)
         .horizontal_alignment(alignment::Horizontal::Right)
