@@ -148,6 +148,8 @@ impl Stream {
                 .build(),
         ));
 
+        let mut last_level = 0f32;
+
         appsink.set_callbacks(
             gst_app::AppSinkCallbacks::builder()
                 .new_sample(move |appsink| {
@@ -191,7 +193,11 @@ impl Stream {
                         .sum();
                     let rms = (sum / (samples.len() as f32)).sqrt();
 
+                    let rms = rms.max(last_level * 0.95);
+
                     sender.update(rms).unwrap();
+
+                    last_level = rms;
 
                     Ok(gst::FlowSuccess::Ok)
                 })
