@@ -2,7 +2,7 @@ use iced::{
   alignment, button, executor, image, window, Alignment, Application, Color, Column, Command,
   Container, Element, Image, Length, Row, Settings, Space, Subscription, Text,
 };
-use iced_native::subscription;
+use iced_native::{keyboard, subscription, Event};
 
 use std::env;
 use std::sync::mpsc;
@@ -45,6 +45,7 @@ struct App {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+  Event(Event),
   Frame(image::Handle),
 }
 
@@ -73,34 +74,47 @@ impl Application for App {
   fn subscription(&self) -> Subscription<Self::Message> {
     struct PipelineType;
 
-    subscription::unfold(
-      std::any::TypeId::of::<PipelineType>(),
-      pipeline::State::Create,
-      |state| async move {
-        match state {
-          pipeline::State::Create => {
-            let (sender, receiver) = mpsc::channel();
-            thread::spawn(move || {
-              match pipeline::create_pipeline(sender).and_then(pipeline::main_loop) {
-                Ok(r) => r,
-                Err(e) => eprintln!("Failed to start pipeline. {}", e),
-              };
-            });
-            (None, pipeline::State::Running(receiver))
+    Subscription::batch([
+      subscription::unfold(
+        std::any::TypeId::of::<PipelineType>(),
+        pipeline::State::Create,
+        |state| async move {
+          match state {
+            pipeline::State::Create => {
+              let (sender, receiver) = mpsc::channel();
+              thread::spawn(move || {
+                match pipeline::create_pipeline(sender).and_then(pipeline::main_loop) {
+                  Ok(r) => r,
+                  Err(e) => eprintln!("Failed to start pipeline. {}", e),
+                };
+              });
+              (None, pipeline::State::Running(receiver))
+            }
+            pipeline::State::Running(receiver) => {
+              (receiver.recv().ok(), pipeline::State::Running(receiver))
+            }
           }
-          pipeline::State::Running(receiver) => {
-            (receiver.recv().ok(), pipeline::State::Running(receiver))
-          }
-        }
-      },
-    )
-    .map(Message::Frame)
+        },
+      )
+      .map(Message::Frame),
+      subscription::events().map(Message::Event),
+    ])
   }
 
   fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
     match message {
       Message::Frame(frame) => {
         self.frame = Some(frame);
+      }
+      Message::Event(event) => {
+        if let Event::Keyboard(keyboard::Event::KeyReleased {
+          key_code,
+          modifiers: _,
+        }) = event
+        {
+          // TODO: Implement button actions [a/s/d/f]
+          dbg!(key_code);
+        }
       }
     }
     Command::none()
