@@ -2,17 +2,17 @@ use iced::Font;
 
 pub const ICONS: Font = Font::External {
   name: "MaterialIcons",
-  bytes: include_bytes!("../res/MaterialIcons-Regular.ttf"),
+  bytes: include_bytes!("../font/MaterialIcons-Regular.ttf"),
 };
 
 pub const ROBOTO: Font = Font::External {
   name: "Roboto",
-  bytes: include_bytes!("../res/Roboto-Black.ttf"),
+  bytes: include_bytes!("../font/Roboto-Black.ttf"),
 };
 
 pub const ROBOTOMONO: Font = Font::External {
   name: "RobotoMono",
-  bytes: include_bytes!("../res/RobotoMono-Regular.ttf"),
+  bytes: include_bytes!("../font/RobotoMono-Regular.ttf"),
 };
 
 pub enum Icon {

@@ -109,7 +109,14 @@ impl Application for App {
   fn view(&mut self) -> Element<Message> {
     let image = match self.frame.clone() {
       Some(frame) => Image::new(frame),
-      None => Image::new("res/colorbar.png"),
+      None => Image::new(image::Handle::from_pixels(
+        16,
+        9,
+        std::iter::repeat(vec![0x00, 0xff])
+          .take(2 * 16 * 9)
+          .flatten()
+          .collect(),
+      )),
     }
     .width(Length::Units(1024))
     .height(Length::Units(576));
