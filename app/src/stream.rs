@@ -21,6 +21,8 @@ pub struct Stream {
     pub frame_rx: Receiver<iced::image::Handle>,
     sound_left_tx: Updater<f32>,
     pub sound_left_rx: Receiver<f32>,
+    sound_right_tx: Updater<f32>,
+    pub sound_right_rx: Receiver<f32>,
 }
 
 impl Default for Stream {
@@ -37,6 +39,7 @@ impl Stream {
         let (frame_rx, frame_tx) =
             channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
         let (sound_left_rx, sound_left_tx) = channel_starting_with(0f32);
+        let (sound_right_rx, sound_right_tx) = channel_starting_with(0f32);
 
         Stream {
             pipeline,
@@ -44,6 +47,8 @@ impl Stream {
             frame_rx,
             sound_left_tx,
             sound_left_rx,
+            sound_right_tx,
+            sound_right_rx,
         }
     }
 
@@ -170,6 +175,7 @@ impl Stream {
 
         let pipeline = self.pipeline.downgrade();
         let sound_left_tx = self.sound_left_tx.clone();
+        let sound_right_tx = self.sound_right_tx.clone();
 
         thread::spawn(move || {
             let pipeline = pipeline.upgrade().unwrap();
@@ -181,9 +187,14 @@ impl Stream {
                         match msg.structure() {
                             Some(e) => {
                                 let rms: glib::ValueArray = e.value("rms").unwrap().get().unwrap();
+
                                 let rms_left: f64 = rms.nth(0).unwrap().get().unwrap();
                                 let level_left = 10f64.powf(rms_left / 20f64);
                                 sound_left_tx.update(level_left as f32).unwrap();
+
+                                let rms_right: f64 = rms.nth(1).unwrap().get().unwrap();
+                                let level_right = 10f64.powf(rms_right / 20f64);
+                                sound_right_tx.update(level_right as f32).unwrap();
                             }
                             None => (),
                         };

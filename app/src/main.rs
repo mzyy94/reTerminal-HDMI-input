@@ -119,7 +119,7 @@ impl Application for App {
             .height(Length::Units(576 - 12)),
         )
         .push(
-          meter::LevelMeter::new(*self.streamer.sound_left_rx.latest())
+          meter::LevelMeter::new(*self.streamer.sound_right_rx.latest())
             .height(Length::Units(576 - 12)),
         ),
     )
