@@ -31,6 +31,15 @@ impl Default for Stream {
     }
 }
 
+macro_rules! element {
+    ($factoryname:expr) => {
+        gst::ElementFactory::make($factoryname, None).map_err(|_| MissingElement($factoryname))
+    };
+    ($factoryname:expr, $name:expr) => {
+        gst::ElementFactory::make($factoryname, $name).map_err(|_| MissingElement($factoryname))
+    };
+}
+
 impl Stream {
     pub fn new() -> Self {
         gst::init().unwrap();
@@ -54,21 +63,14 @@ impl Stream {
 
     pub fn create_videopipeline(self) -> Result<Self, Error> {
         #[cfg(feature = "nativesrc")]
-        let src =
-            gst::ElementFactory::make("v4l2src", None).map_err(|_| MissingElement("v4l2src"))?;
+        let src = element!("v4l2src")?;
         #[cfg(feature = "testsrc")]
-        let src = gst::ElementFactory::make("videotestsrc", None)
-            .map_err(|_| MissingElement("videotestsrc"))?;
-        let upload =
-            gst::ElementFactory::make("glupload", None).map_err(|_| MissingElement("glupload"))?;
-        let colorconvert = gst::ElementFactory::make("glcolorconvert", None)
-            .map_err(|_| MissingElement("glcolorconvert"))?;
-        let download = gst::ElementFactory::make("gldownload", None)
-            .map_err(|_| MissingElement("gldownload"))?;
-        let capsfilter = gst::ElementFactory::make("capsfilter", None)
-            .map_err(|_| MissingElement("capsfilter"))?;
-        let sink =
-            gst::ElementFactory::make("appsink", None).map_err(|_| MissingElement("appsink"))?;
+        let src = element!("videotestsrc")?;
+        let upload = element!("glupload")?;
+        let colorconvert = element!("glcolorconvert")?;
+        let download = element!("gldownload")?;
+        let capsfilter = element!("capsfilter")?;
+        let sink = element!("appsink")?;
 
         self.pipeline
             .add_many(&[&src, &upload, &colorconvert, &download, &capsfilter, &sink])?;
@@ -135,19 +137,13 @@ impl Stream {
 
     pub fn create_audiopipeline(self) -> Result<Self, Error> {
         #[cfg(feature = "nativesrc")]
-        let src =
-            gst::ElementFactory::make("alsasrc", None).map_err(|_| MissingElement("alsasrc"))?;
+        let src = element!("alsasrc")?;
         #[cfg(feature = "testsrc")]
-        let src = gst::ElementFactory::make("audiotestsrc", None)
-            .map_err(|_| MissingElement("audiotestsrc"))?;
-        let convert = gst::ElementFactory::make("audioconvert", None)
-            .map_err(|_| MissingElement("audioconvert"))?;
-        let capsfilter = gst::ElementFactory::make("capsfilter", None)
-            .map_err(|_| MissingElement("capsfilter"))?;
-        let level =
-            gst::ElementFactory::make("level", None).map_err(|_| MissingElement("level"))?;
-        let sink =
-            gst::ElementFactory::make("fakesink", None).map_err(|_| MissingElement("fakesink"))?;
+        let src = element!("audiotestsrc")?;
+        let convert = element!("audioconvert")?;
+        let capsfilter = element!("capsfilter")?;
+        let level = element!("level")?;
+        let sink = element!("fakesink")?;
 
         level.set_property("post-messages", true);
         sink.set_property("sync", true);
