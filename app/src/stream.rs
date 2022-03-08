@@ -6,24 +6,21 @@ use byte_slice_cast::*;
 use anyhow::Error;
 use derive_more::{Display, Error};
 
+use std::thread;
+
 use iced::image;
-use single_value_channel::{Receiver, Updater};
+use single_value_channel::{channel_starting_with, Receiver, Updater};
 
 #[derive(Debug, Display, Error)]
 #[display(fmt = "Missing element {}", _0)]
 struct MissingElement(#[error(not(source))] &'static str);
 
-#[derive(Debug, Display, Error)]
-#[display(fmt = "Received error from {}: {} (debug: {:?})", src, error, debug)]
-struct ErrorMessage {
-    src: String,
-    error: String,
-    debug: Option<String>,
-    source: glib::Error,
-}
-
 pub struct Stream {
     pipeline: gst::Pipeline,
+    frame_tx: Updater<iced::image::Handle>,
+    pub frame_rx: Receiver<iced::image::Handle>,
+    sound_left_tx: Updater<f32>,
+    pub sound_left_rx: Receiver<f32>,
 }
 
 impl Default for Stream {
@@ -37,10 +34,20 @@ impl Stream {
         gst::init().unwrap();
 
         let pipeline = gst::Pipeline::new(None);
-        Stream { pipeline }
+        let (frame_rx, frame_tx) =
+            channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
+        let (sound_left_rx, sound_left_tx) = channel_starting_with(0f32);
+
+        Stream {
+            pipeline,
+            frame_tx,
+            frame_rx,
+            sound_left_tx,
+            sound_left_rx,
+        }
     }
 
-    pub fn create_videopipeline(self, sender: Updater<image::Handle>) -> Result<Self, Error> {
+    pub fn create_videopipeline(self) -> Result<Self, Error> {
         #[cfg(feature = "nativesrc")]
         let src =
             gst::ElementFactory::make("v4l2src", None).map_err(|_| MissingElement("v4l2src"))?;
@@ -74,6 +81,7 @@ impl Stream {
             .build();
         capsfilter.set_property("caps", &caps);
 
+        let frame_tx = self.frame_tx.clone();
         appsink.set_callbacks(
             gst_app::AppSinkCallbacks::builder()
                 .new_sample(move |appsink| {
@@ -109,8 +117,8 @@ impl Stream {
                         gst::FlowError::Error
                     })?;
 
-                    let handle = image::Handle::from_pixels(1280, 720, samples.to_vec());
-                    sender.update(handle).unwrap();
+                    let frame = image::Handle::from_pixels(1280, 720, samples.to_vec());
+                    frame_tx.update(frame).unwrap();
 
                     Ok(gst::FlowSuccess::Ok)
                 })
@@ -120,7 +128,7 @@ impl Stream {
         Ok(self)
     }
 
-    pub fn create_audiopipeline(self, sender: Updater<f32>) -> Result<Self, Error> {
+    pub fn create_audiopipeline(self) -> Result<Self, Error> {
         #[cfg(feature = "nativesrc")]
         let src =
             gst::ElementFactory::make("alsasrc", None).map_err(|_| MissingElement("alsasrc"))?;
@@ -150,6 +158,7 @@ impl Stream {
 
         let mut last_level = 0f32;
 
+        let sound_left_tx = self.sound_left_tx.clone();
         appsink.set_callbacks(
             gst_app::AppSinkCallbacks::builder()
                 .new_sample(move |appsink| {
@@ -195,7 +204,7 @@ impl Stream {
 
                     let rms = rms.max(last_level * 0.95);
 
-                    sender.update(rms).unwrap();
+                    sound_left_tx.update(rms).unwrap();
 
                     last_level = rms;
 
@@ -207,7 +216,7 @@ impl Stream {
         Ok(self)
     }
 
-    pub fn main_loop(self) -> Result<(), Error> {
+    pub fn run_loop(self) -> Result<Self, Error> {
         self.pipeline.set_state(gst::State::Playing)?;
 
         let bus = self
@@ -215,35 +224,32 @@ impl Stream {
             .bus()
             .expect("Pipeline without bus. Shouldn't happen!");
 
-        for msg in bus.iter_timed(gst::ClockTime::NONE) {
-            use gst::MessageView;
+        let pipeline = self.pipeline.downgrade();
 
-            match msg.view() {
-                MessageView::Eos(..) => break,
-                MessageView::Error(err) => {
-                    self.pipeline.set_state(gst::State::Null)?;
-                    return Err(ErrorMessage {
-                        src: msg
-                            .src()
-                            .map(|s| String::from(s.path_string()))
-                            .unwrap_or_else(|| String::from("None")),
-                        error: err.error().to_string(),
-                        debug: err.debug(),
-                        source: err.error(),
+        thread::spawn(move || {
+            let pipeline = pipeline.upgrade().unwrap();
+            for msg in bus.iter_timed(gst::ClockTime::NONE) {
+                use gst::MessageView;
+
+                match msg.view() {
+                    MessageView::Eos(..) => break,
+                    MessageView::Error(err) => {
+                        pipeline.set_state(gst::State::Null).unwrap();
+                        panic!(
+                            "Error {}: {}",
+                            msg.src()
+                                .map(|s| String::from(s.path_string()))
+                                .unwrap_or_else(|| String::from("None")),
+                            err.error().to_string(),
+                        );
                     }
-                    .into());
+                    _ => (),
                 }
-                _ => (),
             }
-        }
 
-        self.pipeline.set_state(gst::State::Null)?;
+            pipeline.set_state(gst::State::Null).unwrap();
+        });
 
-        Ok(())
+        Ok(self)
     }
-}
-
-pub enum State {
-    Create,
-    Running(Receiver<image::Handle>, Receiver<f32>),
 }

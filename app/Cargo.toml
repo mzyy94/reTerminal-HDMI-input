@@ -18,6 +18,6 @@ gst = { package = "gstreamer", version = "0.18.5" }
 gst-app = { package = "gstreamer-app", version = "0.18.0" }
 gst-audio = { package = "gstreamer-audio", version = "0.18.5" }
 gst-video = { package = "gstreamer-video", version = "0.18.5" }
-iced = { git = "https://github.com/iced-rs/iced", rev = "a53fa91e0ddf374bbeb66d5e831b79127ed47a9d", features = ["image"] }
+iced = { git = "https://github.com/iced-rs/iced", rev = "a53fa91e0ddf374bbeb66d5e831b79127ed47a9d", features = ["image", "smol"] }
 iced_native = { git = "https://github.com/iced-rs/iced", rev = "a53fa91e0ddf374bbeb66d5e831b79127ed47a9d" }
 single_value_channel = "1.2.2"

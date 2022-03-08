@@ -1,12 +1,11 @@
 use iced::{
-  alignment, button, executor, image, window, Alignment, Application, Color, Column, Command,
+  alignment, button, executor, time, window, Alignment, Application, Color, Column, Command,
   Container, Element, Image, Length, Row, Settings, Space, Subscription, Text,
 };
 use iced_native::{keyboard, subscription, Event};
-use single_value_channel::channel_starting_with;
 
 use std::env;
-use std::thread;
+use std::time::{Duration, Instant};
 
 mod action;
 mod font;
@@ -28,9 +27,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct App {
-  frame: Option<image::Handle>,
-  level_left: f32,
-  level_right: f32,
+  streamer: stream::Stream,
   voice_off: button::State,
   camera_off: button::State,
   sound_off: button::State,
@@ -46,7 +43,7 @@ struct App {
 #[derive(Debug, Clone)]
 pub enum Message {
   Event(Event),
-  Sample((Option<image::Handle>, Option<f32>)),
+  UpdateFrame(Instant),
 }
 
 impl Application for App {
@@ -55,7 +52,18 @@ impl Application for App {
   type Flags = ();
 
   fn new(_flags: ()) -> (App, Command<Self::Message>) {
-    (App::default(), Command::none())
+    let streamer = stream::Stream::new()
+      .create_videopipeline()
+      .and_then(|s| s.create_audiopipeline())
+      .and_then(|s| s.run_loop())
+      .expect("Failed to start pipeline.");
+    (
+      App {
+        streamer,
+        ..App::default()
+      },
+      Command::none(),
+    )
   }
 
   fn title(&self) -> String {
@@ -72,51 +80,15 @@ impl Application for App {
   }
 
   fn subscription(&self) -> Subscription<Self::Message> {
-    struct PipelineType;
-
     Subscription::batch([
-      subscription::unfold(
-        std::any::TypeId::of::<PipelineType>(),
-        stream::State::Create,
-        |state| async move {
-          match state {
-            stream::State::Create => {
-              let (frame_rx, frame_tx) =
-                channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
-              let (sound_rx, sound_tx) = channel_starting_with(0f32);
-              thread::spawn(move || {
-                match stream::Stream::new()
-                  .create_videopipeline(frame_tx)
-                  .and_then(|s| s.create_audiopipeline(sound_tx))
-                  .and_then(|s| s.main_loop())
-                {
-                  Ok(r) => r,
-                  Err(e) => eprintln!("Failed to start pipeline. {}", e),
-                };
-              });
-              (None, stream::State::Running(frame_rx, sound_rx))
-            }
-            stream::State::Running(mut frame_rx, mut sound_rx) => (
-              Some((
-                Some((*frame_rx.latest_mut()).clone()),
-                Some(*sound_rx.latest()),
-              )),
-              stream::State::Running(frame_rx, sound_rx),
-            ),
-          }
-        },
-      )
-      .map(Message::Sample),
+      time::every(Duration::from_millis(1000 / 30)).map(Message::UpdateFrame),
       subscription::events().map(Message::Event),
     ])
   }
 
   fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
     match message {
-      Message::Sample((frame, sound)) => {
-        self.frame = frame;
-        self.level_left = sound.unwrap_or(self.level_left);
-      }
+      Message::UpdateFrame(_) => {}
       Message::Event(event) => {
         if let Event::Keyboard(keyboard::Event::KeyReleased {
           key_code,
@@ -132,27 +104,24 @@ impl Application for App {
   }
 
   fn view(&mut self) -> Element<Message> {
-    let image = match self.frame.clone() {
-      Some(frame) => Image::new(frame),
-      None => Image::new(image::Handle::from_pixels(
-        16,
-        9,
-        std::iter::repeat(vec![0x00, 0xff])
-          .take(2 * 16 * 9)
-          .flatten()
-          .collect(),
-      )),
-    }
-    .width(Length::Units(1024))
-    .height(Length::Units(576));
+    let frame = (*self.streamer.frame_rx.latest()).clone();
+    let image = Image::new(frame)
+      .width(Length::Units(1024))
+      .height(Length::Units(576));
 
     let meters: Element<_> = Container::new(
       Row::new()
         .width(Length::Fill)
         .spacing(12)
         .align_items(Alignment::Start)
-        .push(meter::LevelMeter::new(self.level_left).height(Length::Units(576 - 12)))
-        .push(meter::LevelMeter::new(self.level_right).height(Length::Units(576 - 12))),
+        .push(
+          meter::LevelMeter::new(*self.streamer.sound_left_rx.latest())
+            .height(Length::Units(576 - 12)),
+        )
+        .push(
+          meter::LevelMeter::new(*self.streamer.sound_left_rx.latest())
+            .height(Length::Units(576 - 12)),
+        ),
     )
     .padding(12)
     .center_x()
