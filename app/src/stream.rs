@@ -137,81 +137,25 @@ impl Stream {
             .map_err(|_| MissingElement("audiotestsrc"))?;
         let convert = gst::ElementFactory::make("audioconvert", None)
             .map_err(|_| MissingElement("audioconvert"))?;
+        let capsfilter = gst::ElementFactory::make("capsfilter", None)
+            .map_err(|_| MissingElement("capsfilter"))?;
+        let level =
+            gst::ElementFactory::make("level", None).map_err(|_| MissingElement("level"))?;
         let sink =
-            gst::ElementFactory::make("appsink", None).map_err(|_| MissingElement("appsink"))?;
+            gst::ElementFactory::make("fakesink", None).map_err(|_| MissingElement("fakesink"))?;
 
-        self.pipeline.add_many(&[&src, &convert, &sink])?;
-        gst::Element::link_many(&[&src, &convert, &sink])?;
+        level.set_property("post-messages", true);
+        sink.set_property("sync", true);
 
-        let appsink = sink
-            .dynamic_cast::<gst_app::AppSink>()
-            .expect("Sink element is expected to be an appsink!");
+        self.pipeline
+            .add_many(&[&src, &convert, &capsfilter, &level, &sink])?;
+        gst::Element::link_many(&[&src, &convert, &capsfilter, &level, &sink])?;
 
-        appsink.set_caps(Some(
-            &gst::Caps::builder("audio/x-raw")
-                .field("format", gst_audio::AUDIO_FORMAT_S16.to_str())
-                .field("layout", "interleaved")
-                .field("channels", 1i32)
-                .field("rate", gst::IntRange::<i32>::new(1, i32::MAX))
-                .build(),
-        ));
+        let caps = gst::Caps::builder("audio/x-raw")
+            .field("channels", 2i32)
+            .build();
 
-        let mut last_level = 0f32;
-
-        let sound_left_tx = self.sound_left_tx.clone();
-        appsink.set_callbacks(
-            gst_app::AppSinkCallbacks::builder()
-                .new_sample(move |appsink| {
-                    let sample = appsink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
-
-                    let buffer = sample.buffer().ok_or_else(|| {
-                        element_error!(
-                            appsink,
-                            gst::ResourceError::Failed,
-                            ("Failed to get buffer from appsink")
-                        );
-
-                        gst::FlowError::Error
-                    })?;
-
-                    let map = buffer.map_readable().map_err(|_| {
-                        element_error!(
-                            appsink,
-                            gst::ResourceError::Failed,
-                            ("Failed to map buffer readable")
-                        );
-
-                        gst::FlowError::Error
-                    })?;
-
-                    let samples = map.as_slice_of::<i16>().map_err(|_| {
-                        element_error!(
-                            appsink,
-                            gst::ResourceError::Failed,
-                            ("Failed to interprete buffer as S16 PCM")
-                        );
-                        gst::FlowError::Error
-                    })?;
-
-                    let sum: f32 = samples
-                        .iter()
-                        .map(|sample| {
-                            let f = f32::from(*sample) / f32::from(i16::MAX);
-                            f * f
-                        })
-                        .sum();
-                    let rms = (sum / (samples.len() as f32)).sqrt();
-
-                    let rms = rms.max(last_level * 0.95);
-
-                    sound_left_tx.update(rms).unwrap();
-
-                    last_level = rms;
-
-                    Ok(gst::FlowSuccess::Ok)
-                })
-                .build(),
-        );
+        capsfilter.set_property("caps", &caps);
 
         Ok(self)
     }
@@ -225,6 +169,7 @@ impl Stream {
             .expect("Pipeline without bus. Shouldn't happen!");
 
         let pipeline = self.pipeline.downgrade();
+        let sound_left_tx = self.sound_left_tx.clone();
 
         thread::spawn(move || {
             let pipeline = pipeline.upgrade().unwrap();
@@ -232,6 +177,17 @@ impl Stream {
                 use gst::MessageView;
 
                 match msg.view() {
+                    MessageView::Element(_) => {
+                        match msg.structure() {
+                            Some(e) => {
+                                let rms: glib::ValueArray = e.value("rms").unwrap().get().unwrap();
+                                let rms_left: f64 = rms.nth(0).unwrap().get().unwrap();
+                                let level_left = 10f64.powf(rms_left / 20f64);
+                                sound_left_tx.update(level_left as f32).unwrap();
+                            }
+                            None => (),
+                        };
+                    }
                     MessageView::Eos(..) => break,
                     MessageView::Error(err) => {
                         pipeline.set_state(gst::State::Null).unwrap();
