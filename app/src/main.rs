@@ -104,24 +104,20 @@ impl Application for App {
   }
 
   fn view(&mut self) -> Element<Message> {
-    let frame = (*self.streamer.frame_rx.latest()).clone();
+    let frame = (*self.streamer.get_frame()).clone();
     let image = Image::new(frame)
       .width(Length::Units(1024))
       .height(Length::Units(576));
+
+    let levels = self.streamer.get_levels();
 
     let meters: Element<_> = Container::new(
       Row::new()
         .width(Length::Fill)
         .spacing(12)
         .align_items(Alignment::Start)
-        .push(
-          meter::LevelMeter::new(*self.streamer.sound_left_rx.latest())
-            .height(Length::Units(576 - 12)),
-        )
-        .push(
-          meter::LevelMeter::new(*self.streamer.sound_right_rx.latest())
-            .height(Length::Units(576 - 12)),
-        ),
+        .push(meter::LevelMeter::new(levels.0).height(Length::Units(576 - 12)))
+        .push(meter::LevelMeter::new(levels.1).height(Length::Units(576 - 12))),
     )
     .padding(12)
     .center_x()

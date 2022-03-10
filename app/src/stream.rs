@@ -17,12 +17,8 @@ struct MissingElement(#[error(not(source))] &'static str);
 
 pub struct Stream {
     pipeline: gst::Pipeline,
-    frame_tx: Updater<iced::image::Handle>,
-    pub frame_rx: Receiver<iced::image::Handle>,
-    sound_left_tx: Updater<f32>,
-    pub sound_left_rx: Receiver<f32>,
-    sound_right_tx: Updater<f32>,
-    pub sound_right_rx: Receiver<f32>,
+    frame_ch: (Receiver<iced::image::Handle>, Updater<iced::image::Handle>),
+    sound_ch: (Receiver<(f32, f32)>, Updater<(f32, f32)>),
 }
 
 impl Default for Stream {
@@ -45,20 +41,22 @@ impl Stream {
         gst::init().unwrap();
 
         let pipeline = gst::Pipeline::new(None);
-        let (frame_rx, frame_tx) =
-            channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
-        let (sound_left_rx, sound_left_tx) = channel_starting_with(0f32);
-        let (sound_right_rx, sound_right_tx) = channel_starting_with(0f32);
+        let frame_ch = channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
+        let sound_ch = channel_starting_with((0f32, 0f32));
 
         Stream {
             pipeline,
-            frame_tx,
-            frame_rx,
-            sound_left_tx,
-            sound_left_rx,
-            sound_right_tx,
-            sound_right_rx,
+            frame_ch,
+            sound_ch,
         }
+    }
+
+    pub fn get_frame(&mut self) -> &image::Handle {
+        self.frame_ch.0.latest()
+    }
+
+    pub fn get_levels(&mut self) -> &(f32, f32) {
+        self.sound_ch.0.latest()
     }
 
     pub fn create_videopipeline(self) -> Result<Self, Error> {
@@ -88,7 +86,7 @@ impl Stream {
             .build();
         capsfilter.set_property("caps", &caps);
 
-        let frame_tx = self.frame_tx.clone();
+        let frame_tx = self.frame_ch.1.clone();
         appsink.set_callbacks(
             gst_app::AppSinkCallbacks::builder()
                 .new_sample(move |appsink| {
@@ -171,11 +169,11 @@ impl Stream {
             .expect("Pipeline without bus. Shouldn't happen!");
 
         let pipeline = self.pipeline.downgrade();
-        let sound_left_tx = self.sound_left_tx.clone();
-        let sound_right_tx = self.sound_right_tx.clone();
+        let sound_tx = self.sound_ch.1.clone();
 
         thread::spawn(move || {
             let pipeline = pipeline.upgrade().unwrap();
+            let mut last_levels = vec![0f32; 2];
             for msg in bus.iter_timed(gst::ClockTime::NONE) {
                 use gst::MessageView;
 
@@ -185,13 +183,17 @@ impl Stream {
                             Some(e) => {
                                 let rms: glib::ValueArray = e.value("rms").unwrap().get().unwrap();
 
-                                let rms_left: f64 = rms.nth(0).unwrap().get().unwrap();
-                                let level_left = 10f64.powf(rms_left / 20f64);
-                                sound_left_tx.update(level_left as f32).unwrap();
+                                let get_rms = |ch: usize| {
+                                    let value: f64 = rms.nth(ch as u32).unwrap().get().unwrap();
+                                    let rms = 10f64.powf(value / 20f64) as f32;
+                                    rms.max(last_levels[ch] * 0.95)
+                                };
 
-                                let rms_right: f64 = rms.nth(1).unwrap().get().unwrap();
-                                let level_right = 10f64.powf(rms_right / 20f64);
-                                sound_right_tx.update(level_right as f32).unwrap();
+                                let levels = (get_rms(0), get_rms(1));
+                                last_levels[0] = levels.0;
+                                last_levels[1] = levels.1;
+
+                                sound_tx.update(levels).unwrap();
                             }
                             None => (),
                         };
