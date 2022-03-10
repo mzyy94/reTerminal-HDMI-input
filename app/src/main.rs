@@ -7,11 +7,12 @@ use iced_native::{keyboard, subscription, Event};
 use std::env;
 use std::time::{Duration, Instant};
 
-mod action;
 mod font;
-mod meter;
 mod stream;
 mod style;
+mod widget;
+
+use widget::{action, meter};
 
 pub fn main() -> iced::Result {
   App::run(Settings {
