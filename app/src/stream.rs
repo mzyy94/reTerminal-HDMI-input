@@ -60,6 +60,10 @@ impl Stream {
         self.sound_ch.0.latest()
     }
 
+    pub fn camera_off(&self) -> bool {
+        !self.camera
+    }
+
     pub fn create_videopipeline(self) -> Result<Self, Error> {
         #[cfg(feature = "nativesrc")]
         let src = element!("v4l2src")?;

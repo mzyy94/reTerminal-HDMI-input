@@ -63,6 +63,8 @@ where
 
 pub enum LabelButton {
   Action,
+  Inactive,
+  Active,
   Primary,
 }
 
@@ -70,6 +72,16 @@ impl button::StyleSheet for LabelButton {
   fn active(&self) -> button::Style {
     match self {
       LabelButton::Action => button::Style {
+        background: Some(Background::Color(Color::from_rgb8(71, 81, 60))),
+        text_color: Color::WHITE,
+        ..button::Style::default()
+      },
+      LabelButton::Active => button::Style {
+        background: Some(Background::Color(Color::from_rgb8(200, 81, 89))),
+        text_color: Color::WHITE,
+        ..button::Style::default()
+      },
+      LabelButton::Inactive => button::Style {
         background: Some(Background::Color(Color::from_rgb8(71, 81, 60))),
         text_color: Color::WHITE,
         ..button::Style::default()

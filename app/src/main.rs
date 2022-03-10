@@ -227,8 +227,12 @@ impl Application for App {
       .push(Space::with_width(Length::Fill))
       .push(action::text(
         &mut self.first_action,
-        "LAYOUT",
-        action::LabelButton::Action,
+        "CAMERA",
+        if self.streamer.camera_off() {
+          action::LabelButton::Inactive
+        } else {
+          action::LabelButton::Active
+        },
       ))
       .push(action::text(
         &mut self.second_action,
