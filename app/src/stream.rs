@@ -64,15 +64,34 @@ impl Stream {
         let src = element!("v4l2src")?;
         #[cfg(feature = "testsrc")]
         let src = element!("videotestsrc")?;
+        let srccapsfilter = element!("capsfilter")?;
         let upload = element!("glupload")?;
+        let mixer = element!("glvideomixer", Some("mix"))?;
         let colorconvert = element!("glcolorconvert")?;
         let download = element!("gldownload")?;
-        let capsfilter = element!("capsfilter")?;
+        let sinkcapsfilter = element!("capsfilter")?;
         let sink = element!("appsink")?;
 
-        self.pipeline
-            .add_many(&[&src, &upload, &colorconvert, &download, &capsfilter, &sink])?;
-        gst::Element::link_many(&[&src, &upload, &colorconvert, &download, &capsfilter, &sink])?;
+        self.pipeline.add_many(&[
+            &src,
+            &srccapsfilter,
+            &upload,
+            &mixer,
+            &colorconvert,
+            &download,
+            &sinkcapsfilter,
+            &sink,
+        ])?;
+        gst::Element::link_many(&[
+            &src,
+            &srccapsfilter,
+            &upload,
+            &mixer,
+            &colorconvert,
+            &download,
+            &sinkcapsfilter,
+            &sink,
+        ])?;
 
         let appsink = sink
             .dynamic_cast::<gst_app::AppSink>()
@@ -82,9 +101,17 @@ impl Stream {
             .field("width", 1280i32)
             .field("height", 720i32)
             .field("framerate", gst::Fraction::new(30, 1))
+            .field("format", gst_video::VideoFormat::Uyvy.to_str())
+            .build();
+        srccapsfilter.set_property("caps", &caps);
+
+        let caps = gst::Caps::builder("video/x-raw")
+            .field("width", 1280i32)
+            .field("height", 720i32)
+            .field("framerate", gst::Fraction::new(30, 1))
             .field("format", gst_video::VideoFormat::Bgra.to_str())
             .build();
-        capsfilter.set_property("caps", &caps);
+        sinkcapsfilter.set_property("caps", &caps);
 
         let frame_tx = self.frame_ch.1.clone();
         appsink.set_callbacks(
