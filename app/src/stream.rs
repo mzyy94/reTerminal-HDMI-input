@@ -15,6 +15,7 @@ struct MissingElement(#[error(not(source))] &'static str);
 
 pub struct Stream {
     pipeline: gst::Pipeline,
+    camera: bool,
     frame_ch: (Receiver<iced::image::Handle>, Updater<iced::image::Handle>),
     sound_ch: (Receiver<(f32, f32)>, Updater<(f32, f32)>),
 }
@@ -41,11 +42,13 @@ impl Stream {
         let pipeline = gst::Pipeline::new(None);
         let frame_ch = channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
         let sound_ch = channel_starting_with((0f32, 0f32));
+        let camera = false;
 
         Stream {
             pipeline,
             frame_ch,
             sound_ch,
+            camera,
         }
     }
 
@@ -139,6 +142,86 @@ impl Stream {
         );
 
         Ok(self)
+    }
+
+    pub fn toggle_camera(&mut self) -> Result<(), Error> {
+        if self.camera == false {
+            #[cfg(feature = "nativesrc")]
+            let src = element!("v4l2src", Some("camera_src"))?;
+            #[cfg(feature = "testsrc")]
+            let src = element!("videotestsrc", Some("camera_src"))?;
+            let capsfilter = element!("capsfilter", Some("camera_caps"))?;
+            let upload = element!("glupload", Some("camera_upload"))?;
+            let transformation = element!("gltransformation", Some("camera_trans"))?;
+
+            let mix = self
+                .pipeline
+                .by_name("mix")
+                .expect("mix element is not found in pipeline!");
+
+            let caps = gst::Caps::builder("video/x-raw")
+                .field("width", 360i32)
+                .field("height", 270i32)
+                .field("framerate", gst::Fraction::new(30, 1))
+                .build();
+            capsfilter.set_property("caps", &caps);
+
+            transformation.set_property("translation-x", 0.1f32);
+            transformation.set_property("translation-y", -0.1f32);
+
+            self.pipeline
+                .add_many(&[&src, &capsfilter, &upload, &transformation])?;
+            gst::Element::link_many(&[&src, &capsfilter, &upload, &transformation])?;
+
+            let srcpad = transformation.static_pad("src").unwrap();
+            let sinkpad = mix
+                .request_pad_simple("sink_%u")
+                .expect("If this happened, something is terribly wrong");
+            srcpad.link(&sinkpad)?;
+
+            self.pipeline.set_state(gst::State::Playing)?;
+
+            self.camera = true;
+        } else {
+            // Get existing elements
+            let src = self.pipeline.by_name("camera_src").unwrap();
+            let capsfilter = self.pipeline.by_name("camera_caps").unwrap();
+            let upload = self.pipeline.by_name("camera_upload").unwrap();
+            let transformation = self.pipeline.by_name("camera_trans").unwrap();
+            let mix = self.pipeline.by_name("mix").unwrap();
+
+            // Get srcpad of transformation and sinkpad of mix
+            let srcpad = transformation.static_pad("src").unwrap();
+            let sinkpads = mix.sink_pads();
+            let sinkpad = sinkpads.last().unwrap();
+
+            // Send EOS to mix in order to stop incoming stream
+            sinkpad.send_event(gst::event::Eos::new());
+
+            // Change sink of transformation from mix to fakesink
+            srcpad.unlink(sinkpad)?;
+            let fakesink = element!("fakesink")?;
+            self.pipeline.add(&fakesink)?;
+            let fakepad = fakesink.static_pad("sink").unwrap();
+            srcpad.link(&fakepad)?;
+
+            // Remove sink of camera input
+            mix.release_request_pad(sinkpad);
+
+            // Remove all unused elements
+            fakesink.set_state(gst::State::Null)?;
+            transformation.set_state(gst::State::Null)?;
+            upload.set_state(gst::State::Null)?;
+            capsfilter.set_state(gst::State::Null)?;
+            src.set_state(gst::State::Null)?;
+            self.pipeline
+                .remove_many(&[&src, &capsfilter, &upload, &transformation, &fakesink])?;
+
+            self.pipeline.set_state(gst::State::Playing)?;
+
+            self.camera = false;
+        }
+        Ok(())
     }
 
     pub fn create_audiopipeline(self) -> Result<Self, Error> {

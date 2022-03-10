@@ -96,11 +96,16 @@ impl Application for App {
           modifiers: _,
         }) = event
         {
-          // TODO: Implement button actions [a/s/d/f]
-          dbg!(key_code);
+          if key_code == keyboard::KeyCode::A {
+            self.streamer.toggle_camera().unwrap();
+          } else {
+            // TODO: Implement button actions [a/s/d/f]
+            dbg!(key_code);
+          }
         }
       }
     }
+
     Command::none()
   }
 
