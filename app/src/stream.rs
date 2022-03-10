@@ -75,6 +75,7 @@ impl Stream {
         let colorconvert = element!("glcolorconvert")?;
         let download = element!("gldownload")?;
         let sinkcapsfilter = element!("capsfilter")?;
+        let tee = element!("tee", Some("videotee"))?;
         let sink = element!("appsink")?;
 
         self.pipeline.add_many(&[
@@ -85,6 +86,7 @@ impl Stream {
             &colorconvert,
             &download,
             &sinkcapsfilter,
+            &tee,
             &sink,
         ])?;
         gst::Element::link_many(&[
@@ -95,6 +97,7 @@ impl Stream {
             &colorconvert,
             &download,
             &sinkcapsfilter,
+            &tee,
             &sink,
         ])?;
 
@@ -235,6 +238,7 @@ impl Stream {
         let src = element!("audiotestsrc")?;
         let convert = element!("audioconvert")?;
         let capsfilter = element!("capsfilter")?;
+        let tee = element!("tee", Some("audiotee"))?;
         let level = element!("level")?;
         let sink = element!("fakesink")?;
 
@@ -243,16 +247,84 @@ impl Stream {
         sink.set_property("sync", true);
 
         self.pipeline
-            .add_many(&[&src, &convert, &capsfilter, &level, &sink])?;
-        gst::Element::link_many(&[&src, &convert, &capsfilter, &level, &sink])?;
+            .add_many(&[&src, &convert, &capsfilter, &tee, &level, &sink])?;
+        gst::Element::link_many(&[&src, &convert, &capsfilter, &tee, &level, &sink])?;
 
         let caps = gst::Caps::builder("audio/x-raw")
             .field("channels", 2i32)
+            .field("rate", 48000i32)
             .build();
 
         capsfilter.set_property("caps", &caps);
 
         Ok(self)
+    }
+
+    fn setup_videoencoder(&self, mux: &gst::Element) -> Result<(), Error> {
+        let videosrc = self.pipeline.by_name("videotee").unwrap();
+        let upload = element!("glupload")?;
+        let colorconvert = element!("glcolorconvert")?;
+        let download = element!("gldownload")?;
+        let videocapsfilter = element!("capsfilter")?;
+        let enc = element!("x264enc")?;
+        let parse = element!("h264parse")?;
+        let queue = element!("queue")?;
+
+        let caps = gst::Caps::builder("video/x-raw")
+            .field("format", gst_video::VideoFormat::Y444.to_str())
+            .build();
+        videocapsfilter.set_property("caps", &caps);
+
+        self.pipeline.add_many(&[
+            &enc,
+            &upload,
+            &colorconvert,
+            &download,
+            &videocapsfilter,
+            &parse,
+            &queue,
+        ])?;
+        gst::Element::link_many(&[
+            &videosrc,
+            &upload,
+            &colorconvert,
+            &download,
+            &videocapsfilter,
+            &enc,
+            &parse,
+            &queue,
+            &mux,
+        ])?;
+        Ok(())
+    }
+
+    fn setup_audioencoder(&self, mux: &gst::Element) -> Result<(), Error> {
+        let audiosrc = self.pipeline.by_name("audiotee").unwrap();
+        let faac = element!("faac")?;
+        let aacparse = element!("aacparse")?;
+        self.pipeline.add_many(&[&faac, &aacparse])?;
+        gst::Element::link_many(&[&audiosrc, &faac, &aacparse, &mux])?;
+
+        Ok(())
+    }
+
+    pub fn start_rtmp(&self, location: &str) -> Result<(), Error> {
+        if self.pipeline.by_name("mux").is_some() {
+            return Ok(());
+        }
+        let mux = element!("flvmux", Some("mux"))?;
+        let sink = element!("rtmpsink")?;
+
+        sink.set_property("location", location);
+
+        self.pipeline.add_many(&[&mux, &sink])?;
+        self.setup_videoencoder(&mux)?;
+        self.setup_audioencoder(&mux)?;
+        gst::Element::link_many(&[&mux, &sink]).unwrap();
+
+        self.pipeline.set_state(gst::State::Playing)?;
+
+        Ok(())
     }
 
     pub fn run_loop(self) -> Result<Self, Error> {

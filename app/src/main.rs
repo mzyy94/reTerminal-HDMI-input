@@ -96,11 +96,20 @@ impl Application for App {
           modifiers: _,
         }) = event
         {
-          if key_code == keyboard::KeyCode::A {
-            self.streamer.toggle_camera().unwrap();
-          } else {
-            // TODO: Implement button actions [a/s/d/f]
-            dbg!(key_code);
+          match key_code {
+            keyboard::KeyCode::A => {
+              self.streamer.toggle_camera().unwrap();
+            }
+            keyboard::KeyCode::F => {
+              self
+                .streamer
+                .start_rtmp(&env::var("RTMP_URL").unwrap())
+                .unwrap();
+            }
+            _ => {
+              // TODO: Implement button actions [a/s/d/f]
+              dbg!(key_code);
+            }
           }
         }
       }
