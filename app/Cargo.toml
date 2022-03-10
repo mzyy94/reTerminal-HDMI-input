@@ -11,7 +11,6 @@ testsrc = []
 
 [dependencies]
 anyhow = "1.0.55"
-byte-slice-cast = "1.2.1"
 derive_more = "0.99.17"
 glib = "0.15.6"
 gst = { package = "gstreamer", version = "0.18.5" }

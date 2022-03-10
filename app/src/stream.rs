@@ -1,7 +1,5 @@
-use gst::element_error;
 use gst::prelude::*;
-
-use byte_slice_cast::*;
+use gst::{element_error, glib};
 
 use anyhow::Error;
 use derive_more::{Display, Error};
@@ -119,37 +117,20 @@ impl Stream {
                 .new_sample(move |appsink| {
                     let sample = appsink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
 
-                    let buffer = sample.buffer().ok_or_else(|| {
-                        element_error!(
-                            appsink,
-                            gst::ResourceError::Failed,
-                            ("Failed to get buffer from appsink")
-                        );
+                    let buffer = sample
+                        .buffer()
+                        .and_then(|buffer| buffer.map_readable().ok())
+                        .ok_or_else(|| {
+                            element_error!(
+                                appsink,
+                                gst::ResourceError::Failed,
+                                ("Failed to get buffer readable")
+                            );
 
-                        gst::FlowError::Error
-                    })?;
+                            gst::FlowError::Error
+                        })?;
 
-                    let map = buffer.map_readable().map_err(|_| {
-                        element_error!(
-                            appsink,
-                            gst::ResourceError::Failed,
-                            ("Failed to map buffer readable")
-                        );
-
-                        gst::FlowError::Error
-                    })?;
-
-                    let samples = map.as_slice_of::<u8>().map_err(|_| {
-                        element_error!(
-                            appsink,
-                            gst::ResourceError::Failed,
-                            ("Failed to interprete buffer as BGRA format")
-                        );
-
-                        gst::FlowError::Error
-                    })?;
-
-                    let frame = image::Handle::from_pixels(1280, 720, samples.to_vec());
+                    let frame = image::Handle::from_pixels(1280, 720, buffer.to_vec());
                     frame_tx.update(frame).unwrap();
 
                     Ok(gst::FlowSuccess::Ok)
