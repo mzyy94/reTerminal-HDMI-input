@@ -146,6 +146,7 @@ impl Stream {
         let sink = element!("fakesink")?;
 
         level.set_property("post-messages", true);
+        level.set_property("interval", 30_000_000u64);
         sink.set_property("sync", true);
 
         self.pipeline
