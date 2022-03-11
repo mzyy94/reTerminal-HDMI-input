@@ -2,16 +2,14 @@ use gst::prelude::*;
 use gst::{element_error, glib};
 
 use anyhow::Error;
-use derive_more::{Display, Error};
 
 use std::thread;
 
 use iced::image;
 use single_value_channel::{channel_starting_with, Receiver, Updater};
 
-#[derive(Debug, Display, Error)]
-#[display(fmt = "Missing element {}", _0)]
-struct MissingElement(#[error(not(source))] &'static str);
+mod element;
+use element::{add_link, element, remove_many, MissingElement};
 
 pub struct Stream {
     pipeline: gst::Pipeline,
@@ -24,15 +22,6 @@ impl Default for Stream {
     fn default() -> Self {
         Stream::new()
     }
-}
-
-macro_rules! element {
-    ($factoryname:expr) => {
-        gst::ElementFactory::make($factoryname, None).map_err(|_| MissingElement($factoryname))
-    };
-    ($factoryname:expr, $name:expr) => {
-        gst::ElementFactory::make($factoryname, $name).map_err(|_| MissingElement($factoryname))
-    };
 }
 
 impl Stream {
@@ -64,7 +53,7 @@ impl Stream {
         !self.camera
     }
 
-    pub fn create_videopipeline(self) -> Result<Self, Error> {
+    pub fn create_videopipeline(&self) -> Result<(), Error> {
         #[cfg(feature = "nativesrc")]
         let src = element!("v4l2src")?;
         #[cfg(feature = "testsrc")]
@@ -78,28 +67,20 @@ impl Stream {
         let tee = element!("tee", Some("videotee"))?;
         let sink = element!("appsink")?;
 
-        self.pipeline.add_many(&[
-            &src,
-            &srccapsfilter,
-            &upload,
-            &mixer,
-            &colorconvert,
-            &download,
-            &sinkcapsfilter,
-            &tee,
-            &sink,
-        ])?;
-        gst::Element::link_many(&[
-            &src,
-            &srccapsfilter,
-            &upload,
-            &mixer,
-            &colorconvert,
-            &download,
-            &sinkcapsfilter,
-            &tee,
-            &sink,
-        ])?;
+        add_link(
+            &self.pipeline,
+            &[
+                &src,
+                &srccapsfilter,
+                &upload,
+                &mixer,
+                &colorconvert,
+                &download,
+                &sinkcapsfilter,
+                &tee,
+                &sink,
+            ],
+        )?;
 
         let appsink = sink
             .dynamic_cast::<gst_app::AppSink>()
@@ -148,7 +129,7 @@ impl Stream {
                 .build(),
         );
 
-        Ok(self)
+        Ok(())
     }
 
     pub fn toggle_camera(&mut self) -> Result<(), Error> {
@@ -176,9 +157,10 @@ impl Stream {
             transformation.set_property("translation-x", 0.1f32);
             transformation.set_property("translation-y", -0.1f32);
 
-            self.pipeline
-                .add_many(&[&src, &capsfilter, &upload, &transformation])?;
-            gst::Element::link_many(&[&src, &capsfilter, &upload, &transformation])?;
+            add_link(
+                &self.pipeline,
+                &[&src, &capsfilter, &upload, &transformation],
+            )?;
 
             let srcpad = transformation.static_pad("src").unwrap();
             let sinkpad = mix
@@ -216,13 +198,10 @@ impl Stream {
             mix.release_request_pad(sinkpad);
 
             // Remove all unused elements
-            fakesink.set_state(gst::State::Null)?;
-            transformation.set_state(gst::State::Null)?;
-            upload.set_state(gst::State::Null)?;
-            capsfilter.set_state(gst::State::Null)?;
-            src.set_state(gst::State::Null)?;
-            self.pipeline
-                .remove_many(&[&src, &capsfilter, &upload, &transformation, &fakesink])?;
+            remove_many(
+                &self.pipeline,
+                &[&src, &capsfilter, &upload, &transformation, &fakesink],
+            )?;
 
             self.pipeline.set_state(gst::State::Playing)?;
 
@@ -231,7 +210,7 @@ impl Stream {
         Ok(())
     }
 
-    pub fn create_audiopipeline(self) -> Result<Self, Error> {
+    pub fn create_audiopipeline(&mut self) -> Result<(), Error> {
         #[cfg(feature = "nativesrc")]
         let src = element!("alsasrc")?;
         #[cfg(feature = "testsrc")]
@@ -246,9 +225,10 @@ impl Stream {
         level.set_property("interval", 30_000_000u64);
         sink.set_property("sync", true);
 
-        self.pipeline
-            .add_many(&[&src, &convert, &capsfilter, &tee, &level, &sink])?;
-        gst::Element::link_many(&[&src, &convert, &capsfilter, &tee, &level, &sink])?;
+        add_link(
+            &self.pipeline,
+            &[&src, &convert, &capsfilter, &tee, &level, &sink],
+        )?;
 
         let caps = gst::Caps::builder("audio/x-raw")
             .field("channels", 2i32)
@@ -257,7 +237,7 @@ impl Stream {
 
         capsfilter.set_property("caps", &caps);
 
-        Ok(self)
+        Ok(())
     }
 
     fn setup_videoencoder(&self, mux: &gst::Element) -> Result<(), Error> {
@@ -275,26 +255,20 @@ impl Stream {
             .build();
         videocapsfilter.set_property("caps", &caps);
 
-        self.pipeline.add_many(&[
-            &enc,
-            &upload,
-            &colorconvert,
-            &download,
-            &videocapsfilter,
-            &parse,
-            &queue,
-        ])?;
-        gst::Element::link_many(&[
-            &videosrc,
-            &upload,
-            &colorconvert,
-            &download,
-            &videocapsfilter,
-            &enc,
-            &parse,
-            &queue,
-            &mux,
-        ])?;
+        add_link(
+            &self.pipeline,
+            &[
+                &upload,
+                &colorconvert,
+                &download,
+                &videocapsfilter,
+                &enc,
+                &parse,
+                &queue,
+            ],
+        )?;
+        videosrc.link(&upload)?;
+        queue.link(mux)?;
         Ok(())
     }
 
@@ -317,17 +291,16 @@ impl Stream {
 
         sink.set_property("location", location);
 
-        self.pipeline.add_many(&[&mux, &sink])?;
+        add_link(&self.pipeline, &[&mux, &sink])?;
         self.setup_videoencoder(&mux)?;
         self.setup_audioencoder(&mux)?;
-        gst::Element::link_many(&[&mux, &sink]).unwrap();
 
         self.pipeline.set_state(gst::State::Playing)?;
 
         Ok(())
     }
 
-    pub fn run_loop(self) -> Result<Self, Error> {
+    pub fn run_loop(&self) -> Result<(), Error> {
         self.pipeline.set_state(gst::State::Playing)?;
 
         let bus = self
@@ -383,6 +356,6 @@ impl Stream {
             pipeline.set_state(gst::State::Null).unwrap();
         });
 
-        Ok(self)
+        Ok(())
     }
 }

@@ -53,11 +53,10 @@ impl Application for App {
   type Flags = ();
 
   fn new(_flags: ()) -> (App, Command<Self::Message>) {
-    let streamer = stream::Stream::new()
-      .create_videopipeline()
-      .and_then(|s| s.create_audiopipeline())
-      .and_then(|s| s.run_loop())
-      .expect("Failed to start pipeline.");
+    let mut streamer = stream::Stream::new();
+    streamer.create_videopipeline().unwrap();
+    streamer.create_audiopipeline().unwrap();
+    streamer.run_loop().unwrap();
     (
       App {
         streamer,
