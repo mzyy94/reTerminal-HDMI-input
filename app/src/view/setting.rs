@@ -26,8 +26,16 @@ impl App {
         }
     }
 
-    pub fn stream_url(&self) -> &str {
-        &self.server_url
+    pub fn stream_url(&self) -> String {
+        if self.server_url.ends_with("{stream_key}") {
+            format!(
+                "{}{stream_key}",
+                self.server_url.replace("{stream_key}", ""),
+                stream_key = self.stream_key
+            )
+        } else {
+            self.server_url.clone()
+        }
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -57,14 +65,14 @@ impl App {
             .horizontal_alignment(alignment::Horizontal::Center)
             .width(Length::Fill);
 
-        let url_label = Text::new("RTMP Server URL")
+        let url_label = Text::new("RTMP Template URL")
             .size(20)
             .horizontal_alignment(alignment::Horizontal::Left)
             .width(Length::Fill);
 
         let url_input = TextInput::new(
             &mut self.input_url,
-            "rtmp://live.example.com:1935/live/",
+            "rtmp://live.example.com:1935/live/{stream_key}",
             &self.server_url,
             Message::InputChanged,
         )

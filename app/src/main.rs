@@ -91,7 +91,7 @@ impl Application for App {
             }
             Message::StartStream(_) => {
                 let url = self.setting.stream_url();
-                self.control.start_stream(url).unwrap();
+                self.control.start_stream(&url).unwrap();
                 Command::none()
             }
             _ => match self.view {
