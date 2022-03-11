@@ -22,15 +22,25 @@ pub fn main() -> iced::Result {
     })
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone)]
+pub enum View {
+    Control,
+    Setting,
+}
+
 struct App {
     control: view::control::App,
+    setting: view::setting::App,
+    view: View,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Event(Event),
     UpdateFrame(Instant),
+    ChangeView(View),
+    ToggleSecureInput(bool),
+    InputChanged(String),
 }
 
 impl Application for App {
@@ -40,7 +50,16 @@ impl Application for App {
 
     fn new(_flags: ()) -> (App, Command<Self::Message>) {
         let control = view::control::App::new();
-        (App { control }, Command::none())
+        let setting = view::setting::App::new();
+        let view = View::Control;
+        (
+            App {
+                control,
+                setting,
+                view,
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
@@ -57,14 +76,29 @@ impl Application for App {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        self.control.subscription()
+        match self.view {
+            View::Control => self.control.subscription(),
+            View::Setting => self.setting.subscription(),
+        }
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.control.update(message)
+        match message {
+            Message::ChangeView(view) => {
+                self.view = view;
+                Command::none()
+            }
+            _ => match self.view {
+                View::Control => self.control.update(message),
+                View::Setting => self.setting.update(message),
+            },
+        }
     }
 
     fn view(&mut self) -> Element<Message> {
-        self.control.view()
+        match self.view {
+            View::Control => self.control.view(),
+            View::Setting => self.setting.view(),
+        }
     }
 }

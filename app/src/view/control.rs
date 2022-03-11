@@ -11,7 +11,7 @@ use crate::font;
 use crate::stream;
 use crate::style;
 use crate::widget::{action, meter};
-use crate::Message;
+use crate::{Message, View};
 
 #[derive(Default)]
 pub struct App {
@@ -73,6 +73,7 @@ impl App {
                     }
                 }
             }
+            _ => {}
         }
 
         Command::none()
@@ -104,11 +105,14 @@ impl App {
         let left_content = Column::new()
             .align_items(Alignment::Center)
             .push(meter_area)
-            .push(action::icon(
-                &mut self.settings,
-                font::Icon::Settings,
-                action::IconButton::Round,
-            ));
+            .push(
+                action::icon(
+                    &mut self.settings,
+                    font::Icon::Settings,
+                    action::IconButton::Round,
+                )
+                .on_press(Message::ChangeView(View::Setting)),
+            );
 
         let video_area = Container::new(image)
             .padding(12)
