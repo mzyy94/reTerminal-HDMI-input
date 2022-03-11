@@ -17,6 +17,7 @@ use crate::{Message, View};
 #[derive(Default)]
 pub struct App {
     streamer: stream::Stream,
+    url: String,
     voice_off: button::State,
     camera_off: button::State,
     sound_off: button::State,
@@ -49,6 +50,20 @@ impl App {
         ])
     }
 
+    pub fn set_url(&mut self, url: String) -> () {
+        self.url = url;
+    }
+
+    fn url_host(&self) -> String {
+        let url: &str = &self.url;
+        let v: Vec<_> = url.split('/').collect();
+        if v.len() > 3 {
+            v[2].to_string()
+        } else {
+            "Invalid host".to_string()
+        }
+    }
+
     pub fn start_stream(&self, stream_url: &str) -> Result<(), Error> {
         self.streamer.start_rtmp(stream_url)
     }
@@ -79,6 +94,7 @@ impl App {
     }
 
     pub fn view(&mut self) -> Element<Message> {
+        let url = self.url_host();
         let frame = (*self.streamer.get_frame()).clone();
         let image = Image::new(frame)
             .width(Length::Units(1024))
@@ -188,7 +204,7 @@ impl App {
             .push(icon(font::Icon::AvTimer))
             .push(text("00:00:00").width(Length::Units(150)))
             .push(icon(font::Icon::CloudUpload))
-            .push(text("rtmp.stream.example.com").horizontal_alignment(alignment::Horizontal::Left))
+            .push(text(&url).horizontal_alignment(alignment::Horizontal::Left))
             .into();
 
         let bottom_actions: Element<_> = Row::new()

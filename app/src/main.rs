@@ -50,9 +50,11 @@ impl Application for App {
     type Flags = ();
 
     fn new(_flags: ()) -> (App, Command<Self::Message>) {
-        let control = view::control::App::new();
+        let mut control = view::control::App::new();
         let setting = view::setting::App::new();
         let view = View::Control;
+        control.set_url(setting.stream_url());
+
         (
             App {
                 control,
@@ -87,6 +89,12 @@ impl Application for App {
         match message {
             Message::ChangeView(view) => {
                 self.view = view;
+                match self.view {
+                    View::Control => {
+                        self.control.set_url(self.setting.stream_url());
+                    }
+                    _ => {}
+                }
                 Command::none()
             }
             Message::StartStream(_) => {
