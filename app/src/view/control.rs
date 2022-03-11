@@ -4,7 +4,8 @@ use iced::{
 };
 use iced_native::{keyboard, subscription, Event};
 
-use std::env;
+use anyhow::Error;
+
 use std::time::Duration;
 
 use crate::font;
@@ -48,23 +49,21 @@ impl App {
         ])
     }
 
+    pub fn start_stream(&self, stream_url: &str) -> Result<(), Error> {
+        self.streamer.start_rtmp(stream_url)
+    }
+
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::UpdateFrame(_) => {}
             Message::Event(event) => {
-                if let Event::Keyboard(keyboard::Event::KeyReleased {
-                    key_code,
-                    modifiers: _,
-                }) = event
-                {
+                if let Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) = event {
                     match key_code {
                         keyboard::KeyCode::A => {
                             self.streamer.toggle_camera().unwrap();
                         }
                         keyboard::KeyCode::F => {
-                            self.streamer
-                                .start_rtmp(&env::var("RTMP_URL").unwrap())
-                                .unwrap();
+                            return Command::perform(async {}, Message::StartStream);
                         }
                         _ => {
                             // TODO: Implement button actions [a/s/d/f]

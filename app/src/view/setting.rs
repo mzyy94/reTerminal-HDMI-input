@@ -2,6 +2,7 @@ use iced::{
     alignment, button, text_input, Button, Checkbox, Column, Command, Container, Element, Length,
     Subscription, Text, TextInput,
 };
+use std::env;
 
 use crate::{Message, View};
 
@@ -18,9 +19,15 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         App {
+            server_url: env::var("RTMP_URL").unwrap_or_default(),
+            stream_key: env::var("STREAM_KEY").unwrap_or_default(),
             is_secure: true,
             ..App::default()
         }
+    }
+
+    pub fn stream_url(&self) -> &str {
+        &self.server_url
     }
 
     pub fn subscription(&self) -> Subscription<Message> {

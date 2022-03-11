@@ -41,6 +41,7 @@ pub enum Message {
     ChangeView(View),
     ToggleSecureInput(bool),
     InputChanged(String),
+    StartStream(()),
 }
 
 impl Application for App {
@@ -86,6 +87,11 @@ impl Application for App {
         match message {
             Message::ChangeView(view) => {
                 self.view = view;
+                Command::none()
+            }
+            Message::StartStream(_) => {
+                let url = self.setting.stream_url();
+                self.control.start_stream(url).unwrap();
                 Command::none()
             }
             _ => match self.view {
