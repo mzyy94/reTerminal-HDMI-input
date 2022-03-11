@@ -9,9 +9,10 @@ use crate::{Message, View};
 #[derive(Default)]
 pub struct App {
     back: button::State,
+    select_ingest: button::State,
     input_url: text_input::State,
     input_key: text_input::State,
-    server_url: String,
+    pub server_url: String,
     stream_key: String,
     is_secure: bool,
 }
@@ -79,6 +80,10 @@ impl App {
         .padding(10)
         .size(30);
 
+        let select_ingest = Button::new(&mut self.select_ingest, Text::new("Select Ingest"))
+            .padding(10)
+            .on_press(Message::ChangeView(View::Ingests));
+
         let key_label = Text::new("Streaming Key")
             .size(20)
             .horizontal_alignment(alignment::Horizontal::Left)
@@ -106,7 +111,7 @@ impl App {
         )
         .width(Length::Fill);
 
-        let button = Button::new(&mut self.back, Text::new("Save"))
+        let save_button = Button::new(&mut self.back, Text::new("Save"))
             .padding(10)
             .on_press(Message::ChangeView(View::Control));
 
@@ -118,10 +123,11 @@ impl App {
             .push(title)
             .push(url_label)
             .push(url_input)
+            .push(select_ingest)
             .push(key_label)
             .push(key_input)
             .push(checkbox)
-            .push(button)
+            .push(save_button)
             .into();
 
         #[cfg(feature = "debug")]

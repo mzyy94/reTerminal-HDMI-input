@@ -5,6 +5,7 @@ use std::env;
 use std::time::Instant;
 
 mod font;
+mod ingest;
 mod stream;
 mod style;
 mod view;
@@ -26,11 +27,13 @@ pub fn main() -> iced::Result {
 pub enum View {
     Control,
     Setting,
+    Ingests,
 }
 
 struct App {
     control: view::control::App,
     setting: view::setting::App,
+    ingests: view::ingests::App,
     view: View,
 }
 
@@ -42,6 +45,8 @@ pub enum Message {
     ToggleSecureInput(bool),
     InputChanged(String),
     StartStream(()),
+    FetchIngest(Option<ingest::Twitch>),
+    SelectIngest(String),
 }
 
 impl Application for App {
@@ -52,6 +57,7 @@ impl Application for App {
     fn new(_flags: ()) -> (App, Command<Self::Message>) {
         let mut control = view::control::App::new();
         let setting = view::setting::App::new();
+        let ingests = view::ingests::App::new();
         let view = View::Control;
         control.set_url(setting.stream_url());
 
@@ -59,6 +65,7 @@ impl Application for App {
             App {
                 control,
                 setting,
+                ingests,
                 view,
             },
             Command::none(),
@@ -82,18 +89,31 @@ impl Application for App {
         match self.view {
             View::Control => self.control.subscription(),
             View::Setting => self.setting.subscription(),
+            View::Ingests => self.ingests.subscription(),
         }
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::ChangeView(view) => {
+                let prev = self.view.clone();
                 self.view = view;
                 match self.view {
                     View::Control => {
                         self.control.set_url(self.setting.stream_url());
                     }
-                    _ => {}
+                    View::Ingests => {
+                        return Command::perform(
+                            ingest::Twitch::get_ingests(),
+                            Message::FetchIngest,
+                        );
+                    }
+                    View::Setting => match prev {
+                        View::Ingests => {
+                            self.setting.server_url = self.ingests.ingest_url.clone();
+                        }
+                        _ => {}
+                    },
                 }
                 Command::none()
             }
@@ -105,6 +125,7 @@ impl Application for App {
             _ => match self.view {
                 View::Control => self.control.update(message),
                 View::Setting => self.setting.update(message),
+                View::Ingests => self.ingests.update(message),
             },
         }
     }
@@ -113,6 +134,7 @@ impl Application for App {
         match self.view {
             View::Control => self.control.view(),
             View::Setting => self.setting.view(),
+            View::Ingests => self.ingests.view(),
         }
     }
 }
