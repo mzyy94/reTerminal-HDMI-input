@@ -330,12 +330,12 @@ impl Stream {
         let colorconvert = element!("glcolorconvert")?;
         let download = element!("gldownload")?;
         let videocapsfilter = element!("capsfilter")?;
-        let enc = element!("x264enc")?;
+        let enc = element!("v4l2h264enc")?;
         let parse = element!("h264parse")?;
         let queue = element!("queue")?;
 
         let caps = gst::Caps::builder("video/x-raw")
-            .field("format", gst_video::VideoFormat::Y444.to_str())
+            .field("format", gst_video::VideoFormat::I420.to_str())
             .build();
         videocapsfilter.set_property("caps", &caps);
 
@@ -358,10 +358,10 @@ impl Stream {
 
     fn setup_audioencoder(&self, mux: &gst::Element) -> Result<(), Error> {
         let audiosrc = self.pipeline.by_name("audiotee").unwrap();
-        let faac = element!("faac")?;
+        let enc = element!("voaacenc")?;
         let aacparse = element!("aacparse")?;
-        self.pipeline.add_many(&[&faac, &aacparse])?;
-        gst::Element::link_many(&[&audiosrc, &faac, &aacparse, &mux])?;
+        self.pipeline.add_many(&[&enc, &aacparse])?;
+        gst::Element::link_many(&[&audiosrc, &enc, &aacparse, &mux])?;
 
         Ok(())
     }
