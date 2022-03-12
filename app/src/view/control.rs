@@ -6,7 +6,7 @@ use iced_native::{keyboard, subscription, Event};
 
 use anyhow::Error;
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::font;
 use crate::stream;
@@ -17,6 +17,7 @@ use crate::{Message, View};
 #[derive(Default)]
 pub struct App {
     streamer: stream::Stream,
+    start: Option<Instant>,
     url: String,
     voice_off: button::State,
     camera_off: button::State,
@@ -64,8 +65,10 @@ impl App {
         }
     }
 
-    pub fn start_stream(&self, stream_url: &str) -> Result<(), Error> {
-        self.streamer.start_rtmp(stream_url)
+    pub fn start_stream(&mut self, stream_url: &str) -> Result<(), Error> {
+        self.streamer.start_rtmp(stream_url)?;
+        self.start = Some(Instant::now());
+        Ok(())
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -95,6 +98,16 @@ impl App {
 
     pub fn view(&mut self) -> Element<Message> {
         let url = self.url_host();
+        let duration = match self.start {
+            Some(start) => start.elapsed(),
+            None => Duration::from_secs(0),
+        };
+        let time = format!(
+            "{:02}:{:02}:{:02}",
+            duration.as_secs() / 3600,
+            (duration.as_secs() / 60) % 60,
+            duration.as_secs() % 60,
+        );
         let frame = (*self.streamer.get_frame()).clone();
         let image = Image::new(frame)
             .width(Length::Units(1024))
@@ -202,7 +215,7 @@ impl App {
             .push(icon(font::Icon::NetworkCheck))
             .push(text("1000 ms").width(Length::Units(150)))
             .push(icon(font::Icon::AvTimer))
-            .push(text("00:00:00").width(Length::Units(150)))
+            .push(text(&time).width(Length::Units(150)))
             .push(icon(font::Icon::CloudUpload))
             .push(text(&url).horizontal_alignment(alignment::Horizontal::Left))
             .into();
