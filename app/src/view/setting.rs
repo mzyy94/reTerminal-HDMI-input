@@ -35,7 +35,7 @@ impl App {
                 stream_key = self.stream_key
             )
         } else {
-            self.server_url.clone()
+            format!("{}{}", self.server_url, self.stream_key)
         }
     }
 
@@ -84,7 +84,7 @@ impl App {
             .padding(10)
             .on_press(Message::ChangeView(View::Ingests));
 
-        let key_label = Text::new("Streaming Key")
+        let key_label = Text::new("Stream Key")
             .size(20)
             .horizontal_alignment(alignment::Horizontal::Left)
             .width(Length::Fill);
@@ -106,7 +106,7 @@ impl App {
 
         let checkbox = Checkbox::new(
             self.is_secure,
-            "Hide streaming key",
+            "Hide Stream Key",
             Message::ToggleSecureInput,
         )
         .width(Length::Fill);
