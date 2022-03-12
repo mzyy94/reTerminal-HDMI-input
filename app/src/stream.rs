@@ -14,6 +14,7 @@ use element::{add_link, element, remove_many, MissingElement};
 pub struct Stream {
     pipeline: gst::Pipeline,
     camera: bool,
+    mic: bool,
     frame_ch: (Receiver<iced::image::Handle>, Updater<iced::image::Handle>),
     sound_ch: (Receiver<(f32, f32)>, Updater<(f32, f32)>),
 }
@@ -32,12 +33,14 @@ impl Stream {
         let frame_ch = channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
         let sound_ch = channel_starting_with((0f32, 0f32));
         let camera = false;
+        let mic = false;
 
         Stream {
             pipeline,
             frame_ch,
             sound_ch,
             camera,
+            mic,
         }
     }
 
@@ -53,6 +56,10 @@ impl Stream {
         !self.camera
     }
 
+    pub fn mic_off(&self) -> bool {
+        !self.mic
+    }
+
     pub fn create_videopipeline(&self) -> Result<(), Error> {
         #[cfg(feature = "nativesrc")]
         let src = element!("v4l2src")?;
@@ -60,7 +67,7 @@ impl Stream {
         let src = element!("videotestsrc")?;
         let srccapsfilter = element!("capsfilter")?;
         let upload = element!("glupload")?;
-        let mixer = element!("glvideomixer", Some("mix"))?;
+        let mixer = element!("glvideomixer", Some("videomix"))?;
         let colorconvert = element!("glcolorconvert")?;
         let download = element!("gldownload")?;
         let sinkcapsfilter = element!("capsfilter")?;
@@ -144,7 +151,7 @@ impl Stream {
 
             let mix = self
                 .pipeline
-                .by_name("mix")
+                .by_name("videomix")
                 .expect("mix element is not found in pipeline!");
 
             let caps = gst::Caps::builder("video/x-raw")
@@ -177,7 +184,7 @@ impl Stream {
             let capsfilter = self.pipeline.by_name("camera_caps").unwrap();
             let upload = self.pipeline.by_name("camera_upload").unwrap();
             let transformation = self.pipeline.by_name("camera_trans").unwrap();
-            let mix = self.pipeline.by_name("mix").unwrap();
+            let mix = self.pipeline.by_name("videomix").unwrap();
 
             // Get srcpad of transformation and sinkpad of mix
             let srcpad = transformation.static_pad("src").unwrap();
@@ -217,6 +224,7 @@ impl Stream {
         let src = element!("audiotestsrc")?;
         let convert = element!("audioconvert")?;
         let capsfilter = element!("capsfilter")?;
+        let mix = element!("audiomixer", Some("audiomix"))?;
         let tee = element!("tee", Some("audiotee"))?;
         let level = element!("level")?;
         let sink = element!("fakesink")?;
@@ -227,7 +235,7 @@ impl Stream {
 
         add_link(
             &self.pipeline,
-            &[&src, &convert, &capsfilter, &tee, &level, &sink],
+            &[&src, &convert, &capsfilter, &mix, &tee, &level, &sink],
         )?;
 
         let caps = gst::Caps::builder("audio/x-raw")
@@ -237,6 +245,82 @@ impl Stream {
 
         capsfilter.set_property("caps", &caps);
 
+        Ok(())
+    }
+
+    pub fn toggle_mic(&mut self) -> Result<(), Error> {
+        if self.mic == false {
+            #[cfg(feature = "nativesrc")]
+            let src = element!("alsasrc", Some("mic_src"))?;
+            #[cfg(feature = "testsrc")]
+            let src = element!("audiotestsrc", Some("mic_src"))?;
+            let convert = element!("audioconvert", Some("mic_convert"))?;
+            let resample = element!("audioresample", Some("mic_resample"))?;
+            let capsfilter = element!("capsfilter", Some("mic_caps"))?;
+            let queue = element!("queue", Some("mic_queue"))?;
+
+            let mix = self
+                .pipeline
+                .by_name("audiomix")
+                .expect("mix element is not found in pipeline!");
+
+            let caps = gst::Caps::builder("audio/x-raw")
+                .field("channels", 2i32)
+                .field("rate", 48000i32)
+                .build();
+            capsfilter.set_property("caps", &caps);
+
+            add_link(
+                &self.pipeline,
+                &[&src, &convert, &resample, &capsfilter, &queue],
+            )?;
+
+            let srcpad = queue.static_pad("src").unwrap();
+            let sinkpad = mix
+                .request_pad_simple("sink_%u")
+                .expect("If this happened, something is terribly wrong");
+            srcpad.link(&sinkpad)?;
+
+            self.pipeline.set_state(gst::State::Playing)?;
+
+            self.mic = true;
+        } else {
+            // Get existing elements
+            let src = self.pipeline.by_name("mic_src").unwrap();
+            let convert = self.pipeline.by_name("mic_convert").unwrap();
+            let resample = self.pipeline.by_name("mic_resample").unwrap();
+            let capsfilter = self.pipeline.by_name("mic_caps").unwrap();
+            let queue = self.pipeline.by_name("mic_queue").unwrap();
+            let mix = self.pipeline.by_name("audiomix").unwrap();
+
+            // Get srcpad of queue and sinkpad of mix
+            let srcpad = queue.static_pad("src").unwrap();
+            let sinkpads = mix.sink_pads();
+            let sinkpad = sinkpads.last().unwrap();
+
+            // Send EOS to mix in order to stop incoming stream
+            sinkpad.send_event(gst::event::Eos::new());
+
+            // Change sink of queue from mix to fakesink
+            srcpad.unlink(sinkpad)?;
+            let fakesink = element!("fakesink")?;
+            self.pipeline.add(&fakesink)?;
+            let fakepad = fakesink.static_pad("sink").unwrap();
+            srcpad.link(&fakepad)?;
+
+            // Remove sink of mic input
+            mix.release_request_pad(sinkpad);
+
+            // Remove all unused elements
+            remove_many(
+                &self.pipeline,
+                &[&src, &convert, &resample, &capsfilter, &queue, &fakesink],
+            )?;
+
+            self.pipeline.set_state(gst::State::Playing)?;
+
+            self.mic = false;
+        }
         Ok(())
     }
 
@@ -322,6 +406,9 @@ impl Stream {
                         match msg.structure() {
                             Some(e) => {
                                 let rms: glib::ValueArray = e.value("rms").unwrap().get().unwrap();
+                                if rms.len() < 2 {
+                                    return;
+                                }
 
                                 let get_rms = |ch: usize| {
                                     let value: f64 = rms.nth(ch as u32).unwrap().get().unwrap();

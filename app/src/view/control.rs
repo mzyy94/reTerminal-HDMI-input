@@ -80,6 +80,9 @@ impl App {
                         keyboard::KeyCode::A => {
                             self.streamer.toggle_camera().unwrap();
                         }
+                        keyboard::KeyCode::S => {
+                            self.streamer.toggle_mic().unwrap();
+                        }
                         keyboard::KeyCode::F => {
                             return Command::perform(async {}, Message::StartStream);
                         }
@@ -237,8 +240,12 @@ impl App {
             ))
             .push(action::text(
                 &mut self.second_action,
-                "CHAT",
-                action::LabelButton::Action,
+                "MIC",
+                if self.streamer.mic_off() {
+                    action::LabelButton::Inactive
+                } else {
+                    action::LabelButton::Active
+                },
             ))
             .push(action::text(
                 &mut self.third_action,
