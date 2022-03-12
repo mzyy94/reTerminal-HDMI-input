@@ -72,6 +72,7 @@ impl Stream {
         let download = element!("gldownload")?;
         let sinkcapsfilter = element!("capsfilter")?;
         let tee = element!("tee", Some("videotee"))?;
+        let queue = element!("queue")?;
         let sink = element!("appsink")?;
 
         if let Ok(device) = env::var("HDMI_DEVICE") {
@@ -89,6 +90,7 @@ impl Stream {
                 &download,
                 &sinkcapsfilter,
                 &tee,
+                &queue,
                 &sink,
             ],
         )?;
@@ -234,6 +236,7 @@ impl Stream {
         let capsfilter = element!("capsfilter")?;
         let mix = element!("audiomixer", Some("audiomix"))?;
         let tee = element!("tee", Some("audiotee"))?;
+        let queue = element!("queue")?;
         let level = element!("level")?;
         let sink = element!("fakesink")?;
 
@@ -243,7 +246,16 @@ impl Stream {
 
         add_link(
             &self.pipeline,
-            &[&src, &convert, &capsfilter, &mix, &tee, &level, &sink],
+            &[
+                &src,
+                &convert,
+                &capsfilter,
+                &mix,
+                &tee,
+                &queue,
+                &level,
+                &sink,
+            ],
         )?;
 
         let caps = gst::Caps::builder("audio/x-raw")
@@ -334,13 +346,13 @@ impl Stream {
 
     fn setup_videoencoder(&self, mux: &gst::Element) -> Result<(), Error> {
         let videosrc = self.pipeline.by_name("videotee").unwrap();
+        let queue = element!("queue")?;
         let upload = element!("glupload")?;
         let colorconvert = element!("glcolorconvert")?;
         let download = element!("gldownload")?;
         let videocapsfilter = element!("capsfilter")?;
         let enc = element!("v4l2h264enc")?;
         let parse = element!("h264parse")?;
-        let queue = element!("queue")?;
 
         let caps = gst::Caps::builder("video/x-raw")
             .field("format", gst_video::VideoFormat::I420.to_str())
@@ -350,26 +362,27 @@ impl Stream {
         add_link(
             &self.pipeline,
             &[
+                &queue,
                 &upload,
                 &colorconvert,
                 &download,
                 &videocapsfilter,
                 &enc,
                 &parse,
-                &queue,
             ],
         )?;
-        videosrc.link(&upload)?;
-        queue.link(mux)?;
+        videosrc.link(&queue)?;
+        parse.link(mux)?;
         Ok(())
     }
 
     fn setup_audioencoder(&self, mux: &gst::Element) -> Result<(), Error> {
         let audiosrc = self.pipeline.by_name("audiotee").unwrap();
+        let queue = element!("queue")?;
         let enc = element!("voaacenc")?;
         let aacparse = element!("aacparse")?;
-        self.pipeline.add_many(&[&enc, &aacparse])?;
-        gst::Element::link_many(&[&audiosrc, &enc, &aacparse, &mux])?;
+        self.pipeline.add_many(&[&queue, &enc, &aacparse])?;
+        gst::Element::link_many(&[&audiosrc, &queue, &enc, &aacparse, &mux])?;
 
         Ok(())
     }
