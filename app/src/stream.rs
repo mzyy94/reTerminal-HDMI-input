@@ -3,7 +3,7 @@ use gst::{element_error, glib};
 
 use anyhow::Error;
 
-use std::thread;
+use std::{env, thread};
 
 use iced::image;
 use single_value_channel::{channel_starting_with, Receiver, Updater};
@@ -73,6 +73,10 @@ impl Stream {
         let sinkcapsfilter = element!("capsfilter")?;
         let tee = element!("tee", Some("videotee"))?;
         let sink = element!("appsink")?;
+
+        if let Ok(device) = env::var("HDMI_DEVICE") {
+            src.set_property("device", device);
+        }
 
         add_link(
             &self.pipeline,
@@ -148,6 +152,10 @@ impl Stream {
             let capsfilter = element!("capsfilter", Some("camera_caps"))?;
             let upload = element!("glupload", Some("camera_upload"))?;
             let transformation = element!("gltransformation", Some("camera_trans"))?;
+
+            if let Ok(device) = env::var("CAMERA_DEVICE") {
+                src.set_property("device", device);
+            }
 
             let mix = self
                 .pipeline
