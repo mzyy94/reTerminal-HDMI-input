@@ -108,9 +108,6 @@ impl Stream {
         srccapsfilter.set_property("caps", &caps);
 
         let caps = gst::Caps::builder("video/x-raw")
-            .field("width", 1280i32)
-            .field("height", 720i32)
-            .field("framerate", gst::Fraction::new(30, 1))
             .field("format", gst_video::VideoFormat::Bgra.to_str())
             .build();
         sinkcapsfilter.set_property("caps", &caps);
@@ -166,8 +163,6 @@ impl Stream {
 
             let caps = gst::Caps::builder("video/x-raw")
                 .field("width", 360i32)
-                .field("height", 270i32)
-                .field("framerate", gst::Fraction::new(30, 1))
                 .build();
             capsfilter.set_property("caps", &caps);
 
