@@ -7,17 +7,27 @@ use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Serialize)]
-pub struct Settings {
-    pub rtmp_url: String,
+pub struct BroadcastSetting {
+    pub ingest_service: Option<Service>,
+    pub custom_url: String,
     pub stream_key: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct DeviceSetting {
     pub hdmi_device: Option<String>,
     pub camera_device: Option<String>,
-    pub ingest_service: Option<Service>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Settings {
+    pub broadcast: BroadcastSetting,
+    pub device: DeviceSetting,
 }
 
 impl Settings {
     pub fn new() -> Self {
-        let rtmp_url = env::var("RTMP_URL").unwrap_or_default();
+        let custom_url = env::var("RTMP_URL").unwrap_or_default();
         let stream_key = env::var("STREAM_KEY").unwrap_or_default();
         let hdmi_device = env::var("HDMI_DEVICE").ok();
         let camera_device = env::var("CAMERA_DEVICE").ok();
@@ -26,11 +36,15 @@ impl Settings {
             .and_then(|service| service.parse().ok());
 
         Settings {
-            rtmp_url,
-            stream_key,
-            hdmi_device,
-            camera_device,
-            ingest_service,
+            broadcast: BroadcastSetting {
+                ingest_service,
+                custom_url,
+                stream_key,
+            },
+            device: DeviceSetting {
+                hdmi_device,
+                camera_device,
+            },
         }
     }
 

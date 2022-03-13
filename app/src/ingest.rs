@@ -42,7 +42,7 @@ pub enum IngestError {
 
 impl Service {
     pub async fn get_ingest_url() -> Result<String, IngestError> {
-        let service = crate::SETTINGS.read().unwrap().ingest_service;
+        let service = crate::SETTINGS.read().unwrap().broadcast.ingest_service;
         if let Some(service) = service {
             Ok(match service {
                 Service::YouTubeLive => "rtmp://a.rtmp.youtube.com/live2/{stream_key}".to_string(),
@@ -54,7 +54,7 @@ impl Service {
                     .unwrap()
                     .url_template
                     .clone(),
-                Service::Custom => crate::SETTINGS.read().unwrap().rtmp_url.clone(),
+                Service::Custom => crate::SETTINGS.read().unwrap().broadcast.custom_url.clone(),
             })
         } else {
             Err(IngestError::InvalidSetting)

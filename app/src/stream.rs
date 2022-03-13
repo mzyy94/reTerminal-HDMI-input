@@ -75,7 +75,7 @@ impl Stream {
         let queue = element!("queue")?;
         let sink = element!("appsink")?;
 
-        if let Some(device) = crate::SETTINGS.read().unwrap().hdmi_device.clone() {
+        if let Some(device) = crate::SETTINGS.read().unwrap().device.hdmi_device.clone() {
             src.set_property("device", device);
         }
 
@@ -152,7 +152,7 @@ impl Stream {
             let upload = element!("glupload", Some("camera_upload"))?;
             let transformation = element!("gltransformation", Some("camera_trans"))?;
 
-            if let Some(device) = crate::SETTINGS.read().unwrap().camera_device.clone() {
+            if let Some(device) = crate::SETTINGS.read().unwrap().device.camera_device.clone() {
                 src.set_property("device", device);
             }
 

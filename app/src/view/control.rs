@@ -288,10 +288,10 @@ impl super::ViewApp for App {
 impl App {
     pub fn reload_setting(&mut self) {
         let setting = crate::SETTINGS.read().unwrap();
-        let service = setting.ingest_service;
+        let service = setting.broadcast.ingest_service;
         self.rtmp_host = match service {
             Some(crate::ingest::Service::Custom) => {
-                let url: &str = &setting.rtmp_url;
+                let url: &str = &setting.broadcast.custom_url;
                 let v: Vec<_> = url.split('/').collect();
                 if v.len() > 3 {
                     v[2].to_string()
@@ -307,7 +307,7 @@ impl App {
     pub fn start_stream(&mut self, server_url: String) -> Result<(), Error> {
         let stream_key = {
             let setting = crate::SETTINGS.read().unwrap();
-            setting.stream_key.clone()
+            setting.broadcast.stream_key.clone()
         };
 
         let stream_url = &format!(

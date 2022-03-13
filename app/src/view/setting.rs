@@ -56,9 +56,9 @@ impl super::ViewApp for App {
             }
             Message::UpdateSetting => {
                 let mut setting = crate::SETTINGS.write().unwrap();
-                (*setting).ingest_service = self.ingest_service.clone();
-                (*setting).rtmp_url = self.custom_url.clone();
-                (*setting).stream_key = self.stream_key.clone();
+                (*setting).broadcast.ingest_service = self.ingest_service.clone();
+                (*setting).broadcast.custom_url = self.custom_url.clone();
+                (*setting).broadcast.stream_key = self.stream_key.clone();
 
                 if let Err(err) = setting.save() {
                     println!("Save setting failed: {}", err);
@@ -165,8 +165,8 @@ impl super::ViewApp for App {
 impl App {
     pub fn refresh(&mut self) -> () {
         let setting = crate::SETTINGS.read().unwrap();
-        self.custom_url = setting.rtmp_url.clone();
-        self.stream_key = setting.stream_key.clone();
-        self.ingest_service = setting.ingest_service;
+        self.custom_url = setting.broadcast.custom_url.clone();
+        self.stream_key = setting.broadcast.stream_key.clone();
+        self.ingest_service = setting.broadcast.ingest_service;
     }
 }
