@@ -3,7 +3,14 @@ use iced::{
     Subscription, Text, TextInput,
 };
 
-use crate::{Message, View};
+use crate::View;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    ToggleSecureInput(bool),
+    InputChanged(String),
+    UpdateSetting,
+}
 
 #[derive(Default)]
 pub struct App {
@@ -17,6 +24,8 @@ pub struct App {
 }
 
 impl super::ViewApp for App {
+    type LocalMessage = Message;
+
     fn new() -> Self {
         let mut app = App {
             is_secure: true,
@@ -26,11 +35,11 @@ impl super::ViewApp for App {
         app
     }
 
-    fn subscription(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Self::LocalMessage> {
         Subscription::none()
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Self::LocalMessage) -> Command<crate::Message> {
         match message {
             Message::ToggleSecureInput(is_secure) => {
                 self.is_secure = is_secure;
@@ -47,14 +56,13 @@ impl super::ViewApp for App {
                 (*setting).rtmp_url = self.server_url.clone();
                 (*setting).stream_key = self.stream_key.clone();
 
-                return Command::perform(async { View::Control }, Message::ChangeView);
+                return Command::perform(async { View::Control }, crate::Message::ChangeView);
             }
-            _ => {}
         }
         Command::none()
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<crate::Message> {
         let title = Text::new("Setting")
             .size(40)
             .horizontal_alignment(alignment::Horizontal::Center)
@@ -69,14 +77,14 @@ impl super::ViewApp for App {
             &mut self.input_url,
             "rtmp://live.example.com:1935/live/{stream_key}",
             &self.server_url,
-            Message::InputChanged,
+            |event| Message::InputChanged(event).into(),
         )
         .padding(10)
         .size(30);
 
         let select_ingest = Button::new(&mut self.select_ingest, Text::new("Select Ingest"))
             .padding(10)
-            .on_press(Message::ChangeView(View::Ingests));
+            .on_press(crate::Message::ChangeView(View::Ingests));
 
         let key_label = Text::new("Stream Key")
             .size(20)
@@ -87,7 +95,7 @@ impl super::ViewApp for App {
             &mut self.input_key,
             "0a1b2c3d4e5f",
             &self.stream_key,
-            Message::InputChanged,
+            |event| Message::InputChanged(event).into(),
         )
         .padding(10)
         .size(30);
@@ -98,16 +106,14 @@ impl super::ViewApp for App {
             key_input
         };
 
-        let checkbox = Checkbox::new(
-            self.is_secure,
-            "Hide Stream Key",
-            Message::ToggleSecureInput,
-        )
+        let checkbox = Checkbox::new(self.is_secure, "Hide Stream Key", |event| {
+            Message::ToggleSecureInput(event).into()
+        })
         .width(Length::Fill);
 
         let save_button = Button::new(&mut self.back, Text::new("Save"))
             .padding(10)
-            .on_press(Message::UpdateSetting);
+            .on_press(Message::UpdateSetting.into());
 
         let content: Element<_> = Column::new()
             .spacing(20)

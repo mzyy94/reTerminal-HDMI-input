@@ -3,7 +3,13 @@ use iced::{
     Subscription, Text,
 };
 
-use crate::{Message, View};
+use crate::View;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    FetchIngest(Option<crate::ingest::Twitch>),
+    SelectIngest(String),
+}
 
 #[derive(Default)]
 pub struct App {
@@ -12,15 +18,17 @@ pub struct App {
 }
 
 impl super::ViewApp for App {
+    type LocalMessage = Message;
+
     fn new() -> Self {
         App::default()
     }
 
-    fn subscription(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Self::LocalMessage> {
         Subscription::none()
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Self::LocalMessage) -> Command<crate::Message> {
         match message {
             Message::FetchIngest(twitch) => {
                 if let Some(twitch) = twitch {
@@ -34,14 +42,13 @@ impl super::ViewApp for App {
             Message::SelectIngest(url) => {
                 let mut setting = crate::SETTINGS.write().unwrap();
                 (*setting).rtmp_url = url;
-                return Command::perform(async { View::Setting }, Message::ChangeView);
+                return Command::perform(async { View::Setting }, crate::Message::ChangeView);
             }
-            _ => {}
         }
         Command::none()
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<crate::Message> {
         let title = Text::new("Ingest List")
             .size(40)
             .horizontal_alignment(alignment::Horizontal::Center)
@@ -62,7 +69,7 @@ impl super::ViewApp for App {
                     .padding(10)
                     .width(Length::Fill)
                     .height(Length::Units(80))
-                    .on_press(Message::SelectIngest(ingest.url_template.clone()));
+                    .on_press(Message::SelectIngest(ingest.url_template.clone()).into());
 
                 column.push(button)
             },

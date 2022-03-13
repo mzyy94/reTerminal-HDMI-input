@@ -1,8 +1,6 @@
 use iced::{executor, window, Application, Command, Element, Settings, Subscription};
-use iced_native::Event;
 
 use std::env;
-use std::time::Instant;
 
 mod font;
 mod ingest;
@@ -49,15 +47,9 @@ struct App {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Event(Event),
-    UpdateFrame(Instant),
     ChangeView(View),
-    ToggleSecureInput(bool),
-    InputChanged(String),
     StartStream(()),
-    FetchIngest(Option<ingest::Twitch>),
-    SelectIngest(String),
-    UpdateSetting,
+    ViewMessage(view::ViewMessage),
 }
 
 impl Application for App {
@@ -97,9 +89,21 @@ impl Application for App {
 
     fn subscription(&self) -> Subscription<Self::Message> {
         match self.view {
-            View::Control => self.control.subscription(),
-            View::Setting => self.setting.subscription(),
-            View::Ingests => self.ingests.subscription(),
+            View::Control => self
+                .control
+                .subscription()
+                .map(view::ViewMessage::Control)
+                .map(crate::Message::ViewMessage),
+            View::Setting => self
+                .setting
+                .subscription()
+                .map(view::ViewMessage::Setting)
+                .map(crate::Message::ViewMessage),
+            View::Ingests => self
+                .ingests
+                .subscription()
+                .map(view::ViewMessage::Ingests)
+                .map(crate::Message::ViewMessage),
         }
     }
 
@@ -110,10 +114,11 @@ impl Application for App {
                 self.view = view;
                 match self.view {
                     View::Ingests => {
-                        return Command::perform(
-                            ingest::Twitch::get_ingests(),
-                            Message::FetchIngest,
-                        );
+                        return Command::perform(ingest::Twitch::get_ingests(), |twitch| {
+                            Message::ViewMessage(view::ViewMessage::Ingests(
+                                view::ingests::Message::FetchIngest(twitch),
+                            ))
+                        });
                     }
                     View::Setting => match prev {
                         View::Ingests => {
@@ -131,10 +136,10 @@ impl Application for App {
                 self.control.start_stream().unwrap();
                 Command::none()
             }
-            _ => match self.view {
-                View::Control => self.control.update(message),
-                View::Setting => self.setting.update(message),
-                View::Ingests => self.ingests.update(message),
+            Message::ViewMessage(message) => match message {
+                view::ViewMessage::Control(message) => self.control.update(message),
+                view::ViewMessage::Setting(message) => self.setting.update(message),
+                view::ViewMessage::Ingests(message) => self.ingests.update(message),
             },
         }
     }

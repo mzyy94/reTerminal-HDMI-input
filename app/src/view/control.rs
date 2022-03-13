@@ -12,7 +12,13 @@ use crate::font;
 use crate::stream;
 use crate::style;
 use crate::widget::{action, meter};
-use crate::{Message, View};
+use crate::View;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    Event(Event),
+    UpdateFrame(Instant),
+}
 
 #[derive(Default)]
 pub struct App {
@@ -32,6 +38,8 @@ pub struct App {
 }
 
 impl super::ViewApp for App {
+    type LocalMessage = Message;
+
     fn new() -> App {
         let mut streamer = stream::Stream::new();
         streamer.create_videopipeline().unwrap();
@@ -46,14 +54,14 @@ impl super::ViewApp for App {
         app
     }
 
-    fn subscription(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Self::LocalMessage> {
         Subscription::batch([
             time::every(Duration::from_millis(1000 / 30)).map(Message::UpdateFrame),
             subscription::events().map(Message::Event),
         ])
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<crate::Message> {
         let duration = match self.start {
             Some(start) => start.elapsed(),
             None => Duration::from_secs(0),
@@ -95,7 +103,7 @@ impl super::ViewApp for App {
                     font::Icon::Gear,
                     action::IconButton::Round,
                 )
-                .on_press(Message::ChangeView(View::Setting)),
+                .on_press(crate::Message::ChangeView(View::Setting)),
             );
 
         let video_area = Container::new(image)
@@ -239,7 +247,7 @@ impl super::ViewApp for App {
             .into()
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Self::LocalMessage) -> Command<crate::Message> {
         match message {
             Message::UpdateFrame(_) => {}
             Message::Event(event) => {
@@ -252,7 +260,7 @@ impl super::ViewApp for App {
                             self.streamer.toggle_mic().unwrap();
                         }
                         keyboard::KeyCode::F => {
-                            return Command::perform(async {}, Message::StartStream);
+                            self.start_stream().unwrap();
                         }
                         _ => {
                             // TODO: Implement button actions [a/s/d/f]
@@ -261,7 +269,6 @@ impl super::ViewApp for App {
                     }
                 }
             }
-            _ => {}
         }
 
         Command::none()
