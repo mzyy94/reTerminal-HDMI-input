@@ -51,11 +51,7 @@ impl App {
     }
 
     fn url_host(&self) -> String {
-        let url: &str = &crate::SETTINGS
-            .read()
-            .unwrap()
-            .get::<String>("rtmp_url")
-            .unwrap_or_default();
+        let url: &str = &crate::SETTINGS.read().unwrap().rtmp_url;
         let v: Vec<_> = url.split('/').collect();
         if v.len() > 3 {
             v[2].to_string()
@@ -65,16 +61,9 @@ impl App {
     }
 
     pub fn start_stream(&mut self) -> Result<(), Error> {
-        let server_url = crate::SETTINGS
-            .read()
-            .unwrap()
-            .get::<String>("rtmp_url")
-            .unwrap_or_default();
-        let stream_key = crate::SETTINGS
-            .read()
-            .unwrap()
-            .get::<String>("stream_key")
-            .unwrap_or_default();
+        let setting = crate::SETTINGS.read().unwrap();
+        let server_url = setting.rtmp_url.clone();
+        let stream_key = setting.stream_key.clone();
 
         let stream_url = &format!(
             "{}{stream_key}",

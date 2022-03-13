@@ -28,8 +28,8 @@ impl App {
 
     pub fn refresh(&mut self) -> () {
         let setting = crate::SETTINGS.read().unwrap();
-        self.server_url = setting.get::<String>("rtmp_url").unwrap_or_default();
-        self.stream_key = setting.get::<String>("stream_key").unwrap_or_default();
+        self.server_url = setting.rtmp_url.clone();
+        self.stream_key = setting.stream_key.clone();
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -49,14 +49,10 @@ impl App {
                 }
             }
             Message::UpdateSetting => {
-                #[allow(deprecated)]
-                crate::SETTINGS
-                    .write()
-                    .unwrap()
-                    .set("rtmp_url", self.server_url.clone())
-                    .unwrap()
-                    .set("stream_key", self.stream_key.clone())
-                    .unwrap();
+                let mut setting = crate::SETTINGS.write().unwrap();
+                (*setting).rtmp_url = self.server_url.clone();
+                (*setting).stream_key = self.stream_key.clone();
+
                 return Command::perform(async { View::Control }, Message::ChangeView);
             }
             _ => {}

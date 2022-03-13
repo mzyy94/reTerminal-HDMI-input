@@ -32,12 +32,8 @@ impl App {
                 }
             }
             Message::SelectIngest(url) => {
-                #[allow(deprecated)]
-                crate::SETTINGS
-                    .write()
-                    .unwrap()
-                    .set("rtmp_url", url)
-                    .unwrap();
+                let mut setting = crate::SETTINGS.write().unwrap();
+                (*setting).rtmp_url = url;
                 return Command::perform(async { View::Setting }, Message::ChangeView);
             }
             _ => {}

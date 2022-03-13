@@ -6,22 +6,17 @@ use std::time::Instant;
 
 mod font;
 mod ingest;
+mod setting;
 mod stream;
 mod style;
 mod view;
 mod widget;
 
-use config::Config;
 use lazy_static::lazy_static;
 use std::sync::RwLock;
 
 lazy_static! {
-    static ref SETTINGS: RwLock<Config> = RwLock::new(
-        Config::builder()
-            .add_source(config::Environment::default())
-            .build()
-            .unwrap()
-    );
+    static ref SETTINGS: RwLock<setting::Settings> = RwLock::new(setting::Settings::new());
 }
 
 pub fn main() -> iced::Result {
