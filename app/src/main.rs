@@ -12,6 +12,12 @@ mod view;
 mod widget;
 
 pub fn main() -> iced::Result {
+    let font = if let iced::Font::External { bytes, .. } = font::PLEXSANS {
+        Some(bytes)
+    } else {
+        None
+    };
+
     App::run(Settings {
         antialiasing: true,
         window: window::Settings {
@@ -19,6 +25,7 @@ pub fn main() -> iced::Result {
             resizable: false,
             ..window::Settings::default()
         },
+        default_font: font,
         ..Settings::default()
     })
 }

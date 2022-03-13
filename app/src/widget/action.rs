@@ -1,4 +1,4 @@
-use crate::font::{Icon, ICONS, ROBOTO};
+use crate::font::{Icon, ICONS, PLEXSANSBOLD};
 use iced::{alignment, button, Background, Button, Color, Length, Text};
 
 pub enum IconButton {
@@ -44,7 +44,7 @@ where
         .width(Length::Units(64))
         .horizontal_alignment(alignment::Horizontal::Center)
         .vertical_alignment(alignment::Vertical::Center)
-        .size(64);
+        .size(48);
     let width = match style {
         IconButton::Round => 100,
         _ => 90,
@@ -105,7 +105,7 @@ where
 {
     let text = Text::new(text)
         .size(60)
-        .font(ROBOTO)
+        .font(PLEXSANSBOLD)
         .color(Color::WHITE)
         .vertical_alignment(alignment::Vertical::Center)
         .horizontal_alignment(alignment::Horizontal::Center);

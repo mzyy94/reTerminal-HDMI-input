@@ -139,7 +139,7 @@ impl App {
             .push(
                 action::icon(
                     &mut self.settings,
-                    font::Icon::Settings,
+                    font::Icon::Gear,
                     action::IconButton::Round,
                 )
                 .on_press(Message::ChangeView(View::Setting)),
@@ -157,27 +157,27 @@ impl App {
             .push(Space::with_height(Length::Units(104)))
             .push(action::icon(
                 &mut self.voice_off,
-                font::Icon::MicOff,
+                font::Icon::MicrophoneSlash,
                 action::IconButton::Active,
             ))
             .push(action::icon(
                 &mut self.camera_off,
-                font::Icon::VideoCamOff,
+                font::Icon::VideoSlash,
                 action::IconButton::Inactive,
             ))
             .push(action::icon(
                 &mut self.sound_off,
-                font::Icon::VolumeOff,
+                font::Icon::VolumeXMark,
                 action::IconButton::Inactive,
             ))
             .push(action::icon(
                 &mut self.video_off,
-                font::Icon::Movie,
+                font::Icon::Clapperboard,
                 action::IconButton::Inactive,
             ))
             .push(action::icon(
                 &mut self.stream_off,
-                font::Icon::PauseCircle,
+                font::Icon::CirclePause,
                 action::IconButton::Inactive,
             ))
             .into();
@@ -193,7 +193,7 @@ impl App {
             Text::new(text)
                 .size(40)
                 .height(Length::Units(40))
-                .font(font::ROBOTOMONO)
+                .font(font::PLEXMONO)
                 .color(Color::WHITE)
                 .vertical_alignment(alignment::Vertical::Center)
                 .horizontal_alignment(alignment::Horizontal::Right)
@@ -213,13 +213,13 @@ impl App {
             .height(Length::Fill)
             .align_items(Alignment::Center)
             .spacing(10)
-            .push(icon(font::Icon::DeveloperBoard))
+            .push(icon(font::Icon::Microchip))
             .push(text("100%").width(Length::Units(90)))
-            .push(icon(font::Icon::NetworkCheck))
+            .push(icon(font::Icon::Gauge))
             .push(text("1000 ms").width(Length::Units(150)))
-            .push(icon(font::Icon::AvTimer))
+            .push(icon(font::Icon::Stopwatch))
             .push(text(&time).width(Length::Units(150)))
-            .push(icon(font::Icon::CloudUpload))
+            .push(icon(font::Icon::CloudArrowUp))
             .push(text(&url).horizontal_alignment(alignment::Horizontal::Left))
             .into();
 

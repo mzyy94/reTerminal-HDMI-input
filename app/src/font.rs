@@ -1,46 +1,51 @@
 use iced::Font;
 
 pub const ICONS: Font = Font::External {
-    name: "MaterialIcons",
-    bytes: include_bytes!("../font/MaterialIcons-Regular.ttf"),
+    name: "Font Awesome Solid",
+    bytes: include_bytes!("../font/fa-solid-900.ttf"),
 };
 
-pub const ROBOTO: Font = Font::External {
-    name: "Roboto",
-    bytes: include_bytes!("../font/Roboto-Black.ttf"),
+pub const PLEXSANS: Font = Font::External {
+    name: "IBM Plex Sans",
+    bytes: include_bytes!("../font/IBMPlexSans-Regular.ttf"),
 };
 
-pub const ROBOTOMONO: Font = Font::External {
-    name: "RobotoMono",
-    bytes: include_bytes!("../font/RobotoMono-Regular.ttf"),
+pub const PLEXSANSBOLD: Font = Font::External {
+    name: "IBM Plex Sans Bold",
+    bytes: include_bytes!("../font/IBMPlexSans-Bold.ttf"),
+};
+
+pub const PLEXMONO: Font = Font::External {
+    name: "IBM Plex Mono",
+    bytes: include_bytes!("../font/IBMPlexMono-Regular.ttf"),
 };
 
 pub enum Icon {
-    MicOff,
-    VideoCamOff,
-    VolumeOff,
-    Movie,
-    PauseCircle,
-    Settings,
-    NetworkCheck,
-    AvTimer,
-    CloudUpload,
-    DeveloperBoard,
+    MicrophoneSlash,
+    VideoSlash,
+    VolumeXMark,
+    Clapperboard,
+    CirclePause,
+    Gear,
+    Gauge,
+    Stopwatch,
+    CloudArrowUp,
+    Microchip,
 }
 
 impl ToString for Icon {
     fn to_string(&self) -> String {
         match self {
-            Icon::MicOff => '\u{e02b}',
-            Icon::VideoCamOff => '\u{e04c}',
-            Icon::VolumeOff => '\u{e04f}',
-            Icon::Movie => '\u{e02c}',
-            Icon::PauseCircle => '\u{e1a2}',
-            Icon::Settings => '\u{e8b8}',
-            Icon::NetworkCheck => '\u{e640}',
-            Icon::AvTimer => '\u{e01b}',
-            Icon::CloudUpload => '\u{e2c3}',
-            Icon::DeveloperBoard => '\u{e30d}',
+            Icon::MicrophoneSlash => '\u{f131}',
+            Icon::VideoSlash => '\u{f4e2}',
+            Icon::VolumeXMark => '\u{f6a9}',
+            Icon::Clapperboard => '\u{e131}',
+            Icon::CirclePause => '\u{f28b}',
+            Icon::Gear => '\u{f013}',
+            Icon::Gauge => '\u{f624}',
+            Icon::Stopwatch => '\u{f2f2}',
+            Icon::CloudArrowUp => '\u{f0ee}',
+            Icon::Microchip => '\u{f2db}',
         }
         .to_string()
     }
