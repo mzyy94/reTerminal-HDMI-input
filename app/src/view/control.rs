@@ -9,6 +9,7 @@ use anyhow::Error;
 use std::time::{Duration, Instant};
 
 use crate::font;
+use crate::ingest::{IngestError, Service};
 use crate::stream;
 use crate::style;
 use crate::widget::{action, meter};
@@ -18,6 +19,7 @@ use crate::View;
 pub enum Message {
     Event(Event),
     UpdateFrame(Instant),
+    StartStream(Result<String, IngestError>),
 }
 
 #[derive(Default)]
@@ -260,7 +262,11 @@ impl super::ViewApp for App {
                             self.streamer.toggle_mic().unwrap();
                         }
                         keyboard::KeyCode::F => {
-                            self.start_stream().unwrap();
+                            return Command::perform(
+                                Service::get_ingest_url(),
+                                Message::StartStream,
+                            )
+                            .map(|e| e.into());
                         }
                         _ => {
                             // TODO: Implement button actions [a/s/d/f]
@@ -269,6 +275,10 @@ impl super::ViewApp for App {
                     }
                 }
             }
+            Message::StartStream(url) => match url {
+                Ok(url) => self.start_stream(url).unwrap(),
+                _ => {}
+            },
         }
 
         Command::none()
@@ -277,19 +287,28 @@ impl super::ViewApp for App {
 
 impl App {
     pub fn reload_setting(&mut self) {
-        let url: &str = &crate::SETTINGS.read().unwrap().rtmp_url;
-        let v: Vec<_> = url.split('/').collect();
-        self.rtmp_host = if v.len() > 3 {
-            v[2].to_string()
-        } else {
-            "Invalid host".to_string()
+        let setting = crate::SETTINGS.read().unwrap();
+        let service = setting.ingest_service;
+        self.rtmp_host = match service {
+            Some(crate::ingest::Service::Custom) => {
+                let url: &str = &setting.rtmp_url;
+                let v: Vec<_> = url.split('/').collect();
+                if v.len() > 3 {
+                    v[2].to_string()
+                } else {
+                    "Invalid host".to_string()
+                }
+            }
+            None => "Invalid host".to_string(),
+            Some(service) => service.to_string(),
         };
     }
 
-    pub fn start_stream(&mut self) -> Result<(), Error> {
-        let setting = crate::SETTINGS.read().unwrap();
-        let server_url = setting.rtmp_url.clone();
-        let stream_key = setting.stream_key.clone();
+    pub fn start_stream(&mut self, server_url: String) -> Result<(), Error> {
+        let stream_key = {
+            let setting = crate::SETTINGS.read().unwrap();
+            setting.stream_key.clone()
+        };
 
         let stream_url = &format!(
             "{}{stream_key}",

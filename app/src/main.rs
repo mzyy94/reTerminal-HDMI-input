@@ -47,7 +47,6 @@ struct App {
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeView(View),
-    StartStream(()),
     ViewMessage(view::ViewMessage),
 }
 
@@ -109,10 +108,6 @@ impl Application for App {
                     }
                     _ => {}
                 }
-                Command::none()
-            }
-            Message::StartStream(_) => {
-                self.control.start_stream().unwrap();
                 Command::none()
             }
             Message::ViewMessage(message) => match message {

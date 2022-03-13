@@ -21,7 +21,7 @@ pub struct App {
     input_url: text_input::State,
     input_key: text_input::State,
     ingest_service: Option<Service>,
-    server_url: String,
+    custom_url: String,
     stream_key: String,
     is_secure: bool,
 }
@@ -49,14 +49,15 @@ impl super::ViewApp for App {
             }
             Message::InputChanged(changed) => {
                 if self.input_url.is_focused() {
-                    self.server_url = changed;
+                    self.custom_url = changed;
                 } else if self.input_key.is_focused() {
                     self.stream_key = changed;
                 }
             }
             Message::UpdateSetting => {
                 let mut setting = crate::SETTINGS.write().unwrap();
-                (*setting).rtmp_url = self.server_url.clone();
+                (*setting).ingest_service = self.ingest_service.clone();
+                (*setting).rtmp_url = self.custom_url.clone();
                 (*setting).stream_key = self.stream_key.clone();
 
                 return Command::perform(async { View::Control }, crate::Message::ChangeView);
@@ -93,7 +94,7 @@ impl super::ViewApp for App {
             Some(Service::Custom) => TextInput::new(
                 &mut self.input_url,
                 "rtmp://live.example.com:1935/live/{stream_key}",
-                &self.server_url,
+                &self.custom_url,
                 |event| Message::InputChanged(event).into(),
             )
             .padding(10)
@@ -161,7 +162,7 @@ impl super::ViewApp for App {
 impl App {
     pub fn refresh(&mut self) -> () {
         let setting = crate::SETTINGS.read().unwrap();
-        self.server_url = setting.rtmp_url.clone();
+        self.custom_url = setting.rtmp_url.clone();
         self.stream_key = setting.stream_key.clone();
         self.ingest_service = setting.ingest_service;
     }

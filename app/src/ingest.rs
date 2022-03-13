@@ -35,6 +35,33 @@ impl Default for Service {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum IngestError {
+    InvalidSetting,
+}
+
+impl Service {
+    pub async fn get_ingest_url() -> Result<String, IngestError> {
+        let service = crate::SETTINGS.read().unwrap().ingest_service;
+        if let Some(service) = service {
+            Ok(match service {
+                Service::YouTubeLive => "rtmp://a.rtmp.youtube.com/live2/{stream_key}".to_string(),
+                Service::Twitch => Twitch::get_ingests()
+                    .await
+                    .unwrap()
+                    .ingests
+                    .first()
+                    .unwrap()
+                    .url_template
+                    .clone(),
+                Service::Custom => crate::SETTINGS.read().unwrap().rtmp_url.clone(),
+            })
+        } else {
+            Err(IngestError::InvalidSetting)
+        }
+    }
+}
+
 impl std::fmt::Display for Service {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
