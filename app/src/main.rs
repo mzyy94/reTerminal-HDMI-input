@@ -12,7 +12,7 @@ mod style;
 mod view;
 mod widget;
 
-use crate::view::ViewApp;
+use crate::view::{View, ViewApp};
 
 use lazy_static::lazy_static;
 use std::sync::RwLock;
@@ -38,13 +38,6 @@ pub fn main() -> iced::Result {
         default_font: font,
         ..Settings::default()
     })
-}
-
-#[derive(Debug, Clone)]
-pub enum View {
-    Control,
-    Setting,
-    Ingests,
 }
 
 struct App {
