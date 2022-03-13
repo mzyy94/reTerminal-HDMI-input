@@ -16,8 +16,8 @@ pub struct App {
     is_secure: bool,
 }
 
-impl App {
-    pub fn new() -> Self {
+impl super::ViewApp for App {
+    fn new() -> Self {
         let mut app = App {
             is_secure: true,
             ..App::default()
@@ -26,17 +26,11 @@ impl App {
         app
     }
 
-    pub fn refresh(&mut self) -> () {
-        let setting = crate::SETTINGS.read().unwrap();
-        self.server_url = setting.rtmp_url.clone();
-        self.stream_key = setting.stream_key.clone();
-    }
-
-    pub fn subscription(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Message> {
         Subscription::none()
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ToggleSecureInput(is_secure) => {
                 self.is_secure = is_secure;
@@ -60,7 +54,7 @@ impl App {
         Command::none()
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<Message> {
         let title = Text::new("Setting")
             .size(40)
             .horizontal_alignment(alignment::Horizontal::Center)
@@ -139,5 +133,13 @@ impl App {
             .padding(0)
             .center_x()
             .into()
+    }
+}
+
+impl App {
+    pub fn refresh(&mut self) -> () {
+        let setting = crate::SETTINGS.read().unwrap();
+        self.server_url = setting.rtmp_url.clone();
+        self.stream_key = setting.stream_key.clone();
     }
 }

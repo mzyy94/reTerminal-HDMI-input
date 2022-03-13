@@ -12,6 +12,8 @@ mod style;
 mod view;
 mod widget;
 
+use crate::view::ViewApp;
+
 use lazy_static::lazy_static;
 use std::sync::RwLock;
 

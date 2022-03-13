@@ -11,16 +11,16 @@ pub struct App {
     ingest_buttons: Vec<(crate::ingest::Ingest, button::State)>,
 }
 
-impl App {
-    pub fn new() -> Self {
+impl super::ViewApp for App {
+    fn new() -> Self {
         App::default()
     }
 
-    pub fn subscription(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Message> {
         Subscription::none()
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::FetchIngest(twitch) => {
                 if let Some(twitch) = twitch {
@@ -41,7 +41,7 @@ impl App {
         Command::none()
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<Message> {
         let title = Text::new("Ingest List")
             .size(40)
             .horizontal_alignment(alignment::Horizontal::Center)

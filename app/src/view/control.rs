@@ -31,8 +31,8 @@ pub struct App {
     settings: button::State,
 }
 
-impl App {
-    pub fn new() -> App {
+impl super::ViewApp for App {
+    fn new() -> App {
         let mut streamer = stream::Stream::new();
         streamer.create_videopipeline().unwrap();
         streamer.create_audiopipeline().unwrap();
@@ -46,67 +46,14 @@ impl App {
         app
     }
 
-    pub fn subscription(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
             time::every(Duration::from_millis(1000 / 30)).map(Message::UpdateFrame),
             subscription::events().map(Message::Event),
         ])
     }
 
-    pub fn reload_setting(&mut self) {
-        let url: &str = &crate::SETTINGS.read().unwrap().rtmp_url;
-        let v: Vec<_> = url.split('/').collect();
-        self.rtmp_host = if v.len() > 3 {
-            v[2].to_string()
-        } else {
-            "Invalid host".to_string()
-        };
-    }
-
-    pub fn start_stream(&mut self) -> Result<(), Error> {
-        let setting = crate::SETTINGS.read().unwrap();
-        let server_url = setting.rtmp_url.clone();
-        let stream_key = setting.stream_key.clone();
-
-        let stream_url = &format!(
-            "{}{stream_key}",
-            server_url.replace("{stream_key}", ""),
-            stream_key = stream_key
-        );
-        self.streamer.start_rtmp(stream_url)?;
-        self.start = Some(Instant::now());
-        Ok(())
-    }
-
-    pub fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::UpdateFrame(_) => {}
-            Message::Event(event) => {
-                if let Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) = event {
-                    match key_code {
-                        keyboard::KeyCode::A => {
-                            self.streamer.toggle_camera().unwrap();
-                        }
-                        keyboard::KeyCode::S => {
-                            self.streamer.toggle_mic().unwrap();
-                        }
-                        keyboard::KeyCode::F => {
-                            return Command::perform(async {}, Message::StartStream);
-                        }
-                        _ => {
-                            // TODO: Implement button actions [a/s/d/f]
-                            dbg!(key_code);
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        Command::none()
-    }
-
-    pub fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<Message> {
         let duration = match self.start {
             Some(start) => start.elapsed(),
             None => Duration::from_secs(0),
@@ -290,5 +237,60 @@ impl App {
             .center_y()
             .style(style::Container)
             .into()
+    }
+
+    fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::UpdateFrame(_) => {}
+            Message::Event(event) => {
+                if let Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) = event {
+                    match key_code {
+                        keyboard::KeyCode::A => {
+                            self.streamer.toggle_camera().unwrap();
+                        }
+                        keyboard::KeyCode::S => {
+                            self.streamer.toggle_mic().unwrap();
+                        }
+                        keyboard::KeyCode::F => {
+                            return Command::perform(async {}, Message::StartStream);
+                        }
+                        _ => {
+                            // TODO: Implement button actions [a/s/d/f]
+                            dbg!(key_code);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        Command::none()
+    }
+}
+
+impl App {
+    pub fn reload_setting(&mut self) {
+        let url: &str = &crate::SETTINGS.read().unwrap().rtmp_url;
+        let v: Vec<_> = url.split('/').collect();
+        self.rtmp_host = if v.len() > 3 {
+            v[2].to_string()
+        } else {
+            "Invalid host".to_string()
+        };
+    }
+
+    pub fn start_stream(&mut self) -> Result<(), Error> {
+        let setting = crate::SETTINGS.read().unwrap();
+        let server_url = setting.rtmp_url.clone();
+        let stream_key = setting.stream_key.clone();
+
+        let stream_url = &format!(
+            "{}{stream_key}",
+            server_url.replace("{stream_key}", ""),
+            stream_key = stream_key
+        );
+        self.streamer.start_rtmp(stream_url)?;
+        self.start = Some(Instant::now());
+        Ok(())
     }
 }
