@@ -246,6 +246,7 @@ dependencies = [
  "serde",
  "serde_json",
  "single_value_channel",
+ "toml",
 ]
 
 [[package]]

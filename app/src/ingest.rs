@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct TwitchIngest {
@@ -18,7 +18,7 @@ impl Twitch {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Service {
     YouTubeLive,
     Twitch,
@@ -77,14 +77,9 @@ impl std::fmt::Display for Service {
 }
 
 impl std::str::FromStr for Service {
-    type Err = String;
+    type Err = serde_json::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "YouTube Live" => Ok(Service::YouTubeLive),
-            "Twitch" => Ok(Service::Twitch),
-            "Custom URL" => Ok(Service::Custom),
-            _ => Err("Invalid string".to_string()),
-        }
+        serde_json::from_value(serde_json::Value::String(s.to_string()))
     }
 }

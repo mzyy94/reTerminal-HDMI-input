@@ -60,6 +60,9 @@ impl super::ViewApp for App {
                 (*setting).rtmp_url = self.custom_url.clone();
                 (*setting).stream_key = self.stream_key.clone();
 
+                if let Err(err) = setting.save() {
+                    println!("Save setting failed: {}", err);
+                }
                 return Command::perform(async { View::Control }, crate::Message::ChangeView);
             }
             Message::SelectIngestService(ingest) => {
