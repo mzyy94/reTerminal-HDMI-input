@@ -1,7 +1,6 @@
 use iced::{Command, Element, Subscription};
 
 pub mod control;
-pub mod ingests;
 pub mod setting;
 
 pub trait ViewApp {
@@ -17,14 +16,12 @@ pub trait ViewApp {
 pub enum View {
     Control,
     Setting,
-    Ingests,
 }
 
 #[derive(Debug, Clone)]
 pub enum ViewMessage {
     Control(<control::App as ViewApp>::LocalMessage),
     Setting(<setting::App as ViewApp>::LocalMessage),
-    Ingests(<ingests::App as ViewApp>::LocalMessage),
 }
 
 impl Into<crate::Message> for ViewMessage {
@@ -42,11 +39,5 @@ impl Into<crate::Message> for <control::App as ViewApp>::LocalMessage {
 impl Into<crate::Message> for <setting::App as ViewApp>::LocalMessage {
     fn into(self) -> crate::Message {
         crate::Message::ViewMessage(ViewMessage::Setting(self).into())
-    }
-}
-
-impl Into<crate::Message> for <ingests::App as ViewApp>::LocalMessage {
-    fn into(self) -> crate::Message {
-        crate::Message::ViewMessage(ViewMessage::Ingests(self).into())
     }
 }

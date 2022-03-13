@@ -41,7 +41,6 @@ pub fn main() -> iced::Result {
 struct App {
     control: view::control::App,
     setting: view::setting::App,
-    ingests: view::ingests::App,
     view: View,
 }
 
@@ -60,14 +59,12 @@ impl Application for App {
     fn new(_flags: ()) -> (App, Command<Self::Message>) {
         let control = view::control::App::new();
         let setting = view::setting::App::new();
-        let ingests = view::ingests::App::new();
         let view = View::Control;
 
         (
             App {
                 control,
                 setting,
-                ingests,
                 view,
             },
             Command::none(),
@@ -99,36 +96,18 @@ impl Application for App {
                 .subscription()
                 .map(view::ViewMessage::Setting)
                 .map(crate::Message::ViewMessage),
-            View::Ingests => self
-                .ingests
-                .subscription()
-                .map(view::ViewMessage::Ingests)
-                .map(crate::Message::ViewMessage),
         }
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::ChangeView(view) => {
-                let prev = self.view.clone();
                 self.view = view;
                 match self.view {
-                    View::Ingests => {
-                        return Command::perform(ingest::Twitch::get_ingests(), |twitch| {
-                            Message::ViewMessage(view::ViewMessage::Ingests(
-                                view::ingests::Message::FetchIngest(twitch),
-                            ))
-                        });
-                    }
-                    View::Setting => match prev {
-                        View::Ingests => {
-                            self.setting.refresh();
-                        }
-                        _ => {}
-                    },
                     View::Control => {
                         self.control.reload_setting();
                     }
+                    _ => {}
                 }
                 Command::none()
             }
@@ -139,7 +118,6 @@ impl Application for App {
             Message::ViewMessage(message) => match message {
                 view::ViewMessage::Control(message) => self.control.update(message),
                 view::ViewMessage::Setting(message) => self.setting.update(message),
-                view::ViewMessage::Ingests(message) => self.ingests.update(message),
             },
         }
     }
@@ -148,7 +126,6 @@ impl Application for App {
         match self.view {
             View::Control => self.control.view(),
             View::Setting => self.setting.view(),
-            View::Ingests => self.ingests.view(),
         }
     }
 }

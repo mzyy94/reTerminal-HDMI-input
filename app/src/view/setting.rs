@@ -1,23 +1,26 @@
 use iced::{
-    alignment, button, text_input, Button, Checkbox, Column, Command, Container, Element, Length,
-    Subscription, Text, TextInput,
+    alignment, button, pick_list, text_input, Button, Checkbox, Column, Command, Container,
+    Element, Length, PickList, Space, Subscription, Text, TextInput,
 };
 
+use crate::ingest::Service;
 use crate::View;
 
 #[derive(Debug, Clone)]
 pub enum Message {
     ToggleSecureInput(bool),
     InputChanged(String),
+    SelectIngestService(Service),
     UpdateSetting,
 }
 
 #[derive(Default)]
 pub struct App {
     back: button::State,
-    select_ingest: button::State,
+    select_service: pick_list::State<Service>,
     input_url: text_input::State,
     input_key: text_input::State,
+    ingest_service: Option<Service>,
     server_url: String,
     stream_key: String,
     is_secure: bool,
@@ -58,6 +61,9 @@ impl super::ViewApp for App {
 
                 return Command::perform(async { View::Control }, crate::Message::ChangeView);
             }
+            Message::SelectIngestService(ingest) => {
+                self.ingest_service = Some(ingest);
+            }
         }
         Command::none()
     }
@@ -68,23 +74,33 @@ impl super::ViewApp for App {
             .horizontal_alignment(alignment::Horizontal::Center)
             .width(Length::Fill);
 
-        let url_label = Text::new("RTMP Template URL")
+        let url_label = Text::new("RTMP Server")
             .size(20)
             .horizontal_alignment(alignment::Horizontal::Left)
             .width(Length::Fill);
 
-        let url_input = TextInput::new(
-            &mut self.input_url,
-            "rtmp://live.example.com:1935/live/{stream_key}",
-            &self.server_url,
-            |event| Message::InputChanged(event).into(),
+        let select_service = PickList::new(
+            &mut self.select_service,
+            &Service::ALL[..],
+            self.ingest_service,
+            |event| Message::SelectIngestService(event).into(),
         )
+        .placeholder("Choose Streaming Service...")
         .padding(10)
-        .size(30);
+        .width(Length::Fill);
 
-        let select_ingest = Button::new(&mut self.select_ingest, Text::new("Select Ingest"))
+        let url_input: Element<_> = match self.ingest_service {
+            Some(Service::Custom) => TextInput::new(
+                &mut self.input_url,
+                "rtmp://live.example.com:1935/live/{stream_key}",
+                &self.server_url,
+                |event| Message::InputChanged(event).into(),
+            )
             .padding(10)
-            .on_press(crate::Message::ChangeView(View::Ingests));
+            .size(30)
+            .into(),
+            _ => Space::with_height(Length::Units(1)).into(),
+        };
 
         let key_label = Text::new("Stream Key")
             .size(20)
@@ -122,8 +138,8 @@ impl super::ViewApp for App {
             .width(Length::Units(800))
             .push(title)
             .push(url_label)
+            .push(select_service)
             .push(url_input)
-            .push(select_ingest)
             .push(key_label)
             .push(key_input)
             .push(checkbox)
@@ -147,5 +163,6 @@ impl App {
         let setting = crate::SETTINGS.read().unwrap();
         self.server_url = setting.rtmp_url.clone();
         self.stream_key = setting.stream_key.clone();
+        self.ingest_service = setting.ingest_service;
     }
 }
