@@ -3,7 +3,7 @@ use gst::{element_error, glib};
 
 use anyhow::Error;
 
-use std::{env, thread};
+use std::thread;
 
 use iced::image;
 use single_value_channel::{channel_starting_with, Receiver, Updater};
@@ -75,7 +75,7 @@ impl Stream {
         let queue = element!("queue")?;
         let sink = element!("appsink")?;
 
-        if let Ok(device) = env::var("HDMI_DEVICE") {
+        if let Ok(device) = crate::SETTINGS.read().unwrap().get::<String>("hdmi_device") {
             src.set_property("device", device);
         }
 
@@ -152,7 +152,11 @@ impl Stream {
             let upload = element!("glupload", Some("camera_upload"))?;
             let transformation = element!("gltransformation", Some("camera_trans"))?;
 
-            if let Ok(device) = env::var("CAMERA_DEVICE") {
+            if let Ok(device) = crate::SETTINGS
+                .read()
+                .unwrap()
+                .get::<String>("camera_device")
+            {
                 src.set_property("device", device);
             }
 

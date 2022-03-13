@@ -11,6 +11,19 @@ mod style;
 mod view;
 mod widget;
 
+use config::Config;
+use lazy_static::lazy_static;
+use std::sync::RwLock;
+
+lazy_static! {
+    static ref SETTINGS: RwLock<Config> = RwLock::new(
+        Config::builder()
+            .add_source(config::Environment::default())
+            .build()
+            .unwrap()
+    );
+}
+
 pub fn main() -> iced::Result {
     let font = if let iced::Font::External { bytes, .. } = font::PLEXSANS {
         Some(bytes)
@@ -54,6 +67,7 @@ pub enum Message {
     StartStream(()),
     FetchIngest(Option<ingest::Twitch>),
     SelectIngest(String),
+    UpdateSetting,
 }
 
 impl Application for App {
@@ -62,11 +76,10 @@ impl Application for App {
     type Flags = ();
 
     fn new(_flags: ()) -> (App, Command<Self::Message>) {
-        let mut control = view::control::App::new();
+        let control = view::control::App::new();
         let setting = view::setting::App::new();
         let ingests = view::ingests::App::new();
         let view = View::Control;
-        control.set_url(setting.stream_url());
 
         (
             App {
@@ -106,9 +119,6 @@ impl Application for App {
                 let prev = self.view.clone();
                 self.view = view;
                 match self.view {
-                    View::Control => {
-                        self.control.set_url(self.setting.stream_url());
-                    }
                     View::Ingests => {
                         return Command::perform(
                             ingest::Twitch::get_ingests(),
@@ -117,16 +127,16 @@ impl Application for App {
                     }
                     View::Setting => match prev {
                         View::Ingests => {
-                            self.setting.server_url = self.ingests.ingest_url.clone();
+                            self.setting.refresh();
                         }
                         _ => {}
                     },
+                    _ => {}
                 }
                 Command::none()
             }
             Message::StartStream(_) => {
-                let url = self.setting.stream_url();
-                self.control.start_stream(&url).unwrap();
+                self.control.start_stream().unwrap();
                 Command::none()
             }
             _ => match self.view {

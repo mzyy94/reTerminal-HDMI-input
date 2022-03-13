@@ -7,7 +7,6 @@ use crate::{Message, View};
 
 #[derive(Default)]
 pub struct App {
-    pub ingest_url: String,
     scroll: scrollable::State,
     ingest_buttons: Vec<(crate::ingest::Ingest, button::State)>,
 }
@@ -33,7 +32,12 @@ impl App {
                 }
             }
             Message::SelectIngest(url) => {
-                self.ingest_url = url;
+                #[allow(deprecated)]
+                crate::SETTINGS
+                    .write()
+                    .unwrap()
+                    .set("rtmp_url", url)
+                    .unwrap();
                 return Command::perform(async { View::Setting }, Message::ChangeView);
             }
             _ => {}

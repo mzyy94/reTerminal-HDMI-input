@@ -2,7 +2,6 @@ use iced::{
     alignment, button, text_input, Button, Checkbox, Column, Command, Container, Element, Length,
     Subscription, Text, TextInput,
 };
-use std::env;
 
 use crate::{Message, View};
 
@@ -12,31 +11,25 @@ pub struct App {
     select_ingest: button::State,
     input_url: text_input::State,
     input_key: text_input::State,
-    pub server_url: String,
+    server_url: String,
     stream_key: String,
     is_secure: bool,
 }
 
 impl App {
     pub fn new() -> Self {
-        App {
-            server_url: env::var("RTMP_URL").unwrap_or_default(),
-            stream_key: env::var("STREAM_KEY").unwrap_or_default(),
+        let mut app = App {
             is_secure: true,
             ..App::default()
-        }
+        };
+        app.refresh();
+        app
     }
 
-    pub fn stream_url(&self) -> String {
-        if self.server_url.ends_with("{stream_key}") {
-            format!(
-                "{}{stream_key}",
-                self.server_url.replace("{stream_key}", ""),
-                stream_key = self.stream_key
-            )
-        } else {
-            format!("{}{}", self.server_url, self.stream_key)
-        }
+    pub fn refresh(&mut self) -> () {
+        let setting = crate::SETTINGS.read().unwrap();
+        self.server_url = setting.get::<String>("rtmp_url").unwrap_or_default();
+        self.stream_key = setting.get::<String>("stream_key").unwrap_or_default();
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -54,6 +47,17 @@ impl App {
                 } else if self.input_key.is_focused() {
                     self.stream_key = changed;
                 }
+            }
+            Message::UpdateSetting => {
+                #[allow(deprecated)]
+                crate::SETTINGS
+                    .write()
+                    .unwrap()
+                    .set("rtmp_url", self.server_url.clone())
+                    .unwrap()
+                    .set("stream_key", self.stream_key.clone())
+                    .unwrap();
+                return Command::perform(async { View::Control }, Message::ChangeView);
             }
             _ => {}
         }
@@ -113,7 +117,7 @@ impl App {
 
         let save_button = Button::new(&mut self.back, Text::new("Save"))
             .padding(10)
-            .on_press(Message::ChangeView(View::Control));
+            .on_press(Message::UpdateSetting);
 
         let content: Element<_> = Column::new()
             .spacing(20)

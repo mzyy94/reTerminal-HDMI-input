@@ -11,6 +11,7 @@ testsrc = []
 
 [dependencies]
 anyhow = "1.0.55"
+config = "0.12.0"
 derive_more = "0.99.17"
 glib = "0.15.6"
 gst = { package = "gstreamer", version = "0.18.5" }
@@ -19,6 +20,7 @@ gst-audio = { package = "gstreamer-audio", version = "0.18.5" }
 gst-video = { package = "gstreamer-video", version = "0.18.5" }
 iced = { git = "https://github.com/iced-rs/iced", rev = "a53fa91e0ddf374bbeb66d5e831b79127ed47a9d", features = ["image", "smol", "tokio"] }
 iced_native = { git = "https://github.com/iced-rs/iced", rev = "a53fa91e0ddf374bbeb66d5e831b79127ed47a9d" }
+lazy_static = "1.4.0"
 reqwest = { version = "0.11.9", features = ["json", "rustls-tls"] }
 serde = {version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.79"

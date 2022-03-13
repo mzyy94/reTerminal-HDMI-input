@@ -18,7 +18,6 @@ use crate::{Message, View};
 pub struct App {
     streamer: stream::Stream,
     start: Option<Instant>,
-    url: String,
     voice_off: button::State,
     camera_off: button::State,
     sound_off: button::State,
@@ -51,12 +50,12 @@ impl App {
         ])
     }
 
-    pub fn set_url(&mut self, url: String) -> () {
-        self.url = url;
-    }
-
     fn url_host(&self) -> String {
-        let url: &str = &self.url;
+        let url: &str = &crate::SETTINGS
+            .read()
+            .unwrap()
+            .get::<String>("rtmp_url")
+            .unwrap_or_default();
         let v: Vec<_> = url.split('/').collect();
         if v.len() > 3 {
             v[2].to_string()
@@ -65,7 +64,23 @@ impl App {
         }
     }
 
-    pub fn start_stream(&mut self, stream_url: &str) -> Result<(), Error> {
+    pub fn start_stream(&mut self) -> Result<(), Error> {
+        let server_url = crate::SETTINGS
+            .read()
+            .unwrap()
+            .get::<String>("rtmp_url")
+            .unwrap_or_default();
+        let stream_key = crate::SETTINGS
+            .read()
+            .unwrap()
+            .get::<String>("stream_key")
+            .unwrap_or_default();
+
+        let stream_url = &format!(
+            "{}{stream_key}",
+            server_url.replace("{stream_key}", ""),
+            stream_key = stream_key
+        );
         self.streamer.start_rtmp(stream_url)?;
         self.start = Some(Instant::now());
         Ok(())
