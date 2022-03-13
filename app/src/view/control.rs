@@ -17,6 +17,7 @@ use crate::{Message, View};
 #[derive(Default)]
 pub struct App {
     streamer: stream::Stream,
+    rtmp_host: String,
     start: Option<Instant>,
     voice_off: button::State,
     camera_off: button::State,
@@ -37,10 +38,12 @@ impl App {
         streamer.create_audiopipeline().unwrap();
         streamer.run_loop().unwrap();
 
-        App {
+        let mut app = App {
             streamer,
             ..App::default()
-        }
+        };
+        app.reload_setting();
+        app
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -50,14 +53,14 @@ impl App {
         ])
     }
 
-    fn url_host(&self) -> String {
+    pub fn reload_setting(&mut self) {
         let url: &str = &crate::SETTINGS.read().unwrap().rtmp_url;
         let v: Vec<_> = url.split('/').collect();
-        if v.len() > 3 {
+        self.rtmp_host = if v.len() > 3 {
             v[2].to_string()
         } else {
             "Invalid host".to_string()
-        }
+        };
     }
 
     pub fn start_stream(&mut self) -> Result<(), Error> {
@@ -104,7 +107,6 @@ impl App {
     }
 
     pub fn view(&mut self) -> Element<Message> {
-        let url = self.url_host();
         let duration = match self.start {
             Some(start) => start.elapsed(),
             None => Duration::from_secs(0),
@@ -224,7 +226,7 @@ impl App {
             .push(icon(font::Icon::Stopwatch))
             .push(text(&time).width(Length::Units(150)))
             .push(icon(font::Icon::CloudArrowUp))
-            .push(text(&url).horizontal_alignment(alignment::Horizontal::Left))
+            .push(text(&self.rtmp_host).horizontal_alignment(alignment::Horizontal::Left))
             .into();
 
         let bottom_actions: Element<_> = Row::new()

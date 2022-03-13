@@ -126,7 +126,9 @@ impl Application for App {
                         }
                         _ => {}
                     },
-                    _ => {}
+                    View::Control => {
+                        self.control.reload_setting();
+                    }
                 }
                 Command::none()
             }
