@@ -302,6 +302,15 @@ impl App {
             None => "Invalid host".to_string(),
             Some(service) => service.to_string(),
         };
+        #[cfg(feature = "button-shim")]
+        {
+            let mut buttonshim = buttonshim::ButtonShim::new().unwrap();
+            if self.rtmp_host != "Invalid host".to_string() {
+                buttonshim.led.set_pixel(0, 0xff, 0).unwrap();
+            } else {
+                buttonshim.led.set_pixel(0xff, 0xff, 0).unwrap();
+            }
+        }
     }
 
     pub fn start_stream(&mut self, server_url: String) -> Result<(), Error> {
@@ -317,6 +326,13 @@ impl App {
         );
         self.streamer.start_rtmp(stream_url)?;
         self.start = Some(Instant::now());
+
+        #[cfg(feature = "button-shim")]
+        {
+            let mut buttonshim = buttonshim::ButtonShim::new().unwrap();
+            buttonshim.led.set_pixel(0xff, 0, 0).unwrap();
+        }
+
         Ok(())
     }
 }

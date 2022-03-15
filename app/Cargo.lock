@@ -233,6 +233,7 @@ name = "broadcast-terminal"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "buttonshim",
  "derive_more",
  "glib",
  "gstreamer",
@@ -254,6 +255,14 @@ name = "bumpalo"
 version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a45a46ab1f2412e53d3a0ade76ffad2025804294569aae387231a0cd6e0899"
+
+[[package]]
+name = "buttonshim"
+version = "0.1.0"
+source = "git+https://github.com/mzyy94/buttonshim#fb9cf02980df6fff06352256ddaeed6864d05b9e"
+dependencies = [
+ "rppal",
+]
 
 [[package]]
 name = "bytemuck"
@@ -2365,6 +2374,16 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi",
+]
+
+[[package]]
+name = "rppal"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c88c9c6248de4d337747b619d8f671055ef48a87dc21b97998833f189a0bbd4f"
+dependencies = [
+ "lazy_static",
+ "libc",
 ]
 
 [[package]]
