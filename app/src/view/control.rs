@@ -12,7 +12,7 @@ use crate::font;
 use crate::ingest::{IngestError, Service};
 use crate::stream;
 use crate::style;
-use crate::widget::{action, meter};
+use crate::widget::{action, label, meter};
 use crate::View;
 
 #[derive(Debug, Clone)]
@@ -27,10 +27,6 @@ pub struct App {
     streamer: stream::Stream,
     rtmp_host: String,
     start: Option<Instant>,
-    first_action: button::State,
-    second_action: button::State,
-    third_action: button::State,
-    broadcast_action: button::State,
     settings: button::State,
 }
 
@@ -195,34 +191,24 @@ impl super::ViewApp for App {
             .align_items(Alignment::End)
             .spacing(4)
             .push(Space::with_width(Length::Fill))
-            .push(action::text(
-                &mut self.first_action,
+            .push(label::text(
                 "CAMERA",
                 if self.streamer.camera_off() {
-                    action::LabelButton::Inactive
+                    label::Label::Inactive
                 } else {
-                    action::LabelButton::Active
+                    label::Label::Active
                 },
             ))
-            .push(action::text(
-                &mut self.second_action,
+            .push(label::text(
                 "MIC",
                 if self.streamer.mic_off() {
-                    action::LabelButton::Inactive
+                    label::Label::Inactive
                 } else {
-                    action::LabelButton::Active
+                    label::Label::Active
                 },
             ))
-            .push(action::text(
-                &mut self.third_action,
-                "SCENE",
-                action::LabelButton::Action,
-            ))
-            .push(action::text(
-                &mut self.broadcast_action,
-                "START",
-                action::LabelButton::Primary,
-            ))
+            .push(label::text("SCENE", label::Label::Inactive))
+            .push(label::text("START", label::Label::Primary))
             .into();
 
         let right_content: Element<_> = Column::new()
