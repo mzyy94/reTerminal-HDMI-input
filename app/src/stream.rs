@@ -17,6 +17,7 @@ pub struct Stream {
     mic: bool,
     frame_ch: (Receiver<iced::image::Handle>, Updater<iced::image::Handle>),
     sound_ch: (Receiver<(f32, f32)>, Updater<(f32, f32)>),
+    mic_ch: (Receiver<(f32, f32)>, Updater<(f32, f32)>),
 }
 
 impl Default for Stream {
@@ -32,6 +33,7 @@ impl Stream {
         let pipeline = gst::Pipeline::new(None);
         let frame_ch = channel_starting_with(image::Handle::from_pixels(1, 1, vec![0; 4]));
         let sound_ch = channel_starting_with((0f32, 0f32));
+        let mic_ch = channel_starting_with((0f32, 0f32));
         let camera = false;
         let mic = false;
 
@@ -39,6 +41,7 @@ impl Stream {
             pipeline,
             frame_ch,
             sound_ch,
+            mic_ch,
             camera,
             mic,
         }
@@ -48,8 +51,12 @@ impl Stream {
         self.frame_ch.0.latest()
     }
 
-    pub fn get_levels(&mut self) -> &(f32, f32) {
+    pub fn get_output_levels(&mut self) -> &(f32, f32) {
         self.sound_ch.0.latest()
+    }
+
+    pub fn get_mic_levels(&mut self) -> &(f32, f32) {
+        self.mic_ch.0.latest()
     }
 
     pub fn camera_off(&self) -> bool {
@@ -232,7 +239,7 @@ impl Stream {
         let mix = element!("audiomixer", Some("audiomix"))?;
         let tee = element!("tee", Some("audiotee"))?;
         let queue = element!("queue")?;
-        let level = element!("level")?;
+        let level = element!("level", Some("output_level"))?;
         let sink = element!("fakesink")?;
 
         level.set_property("post-messages", true);
@@ -271,8 +278,13 @@ impl Stream {
             let src = element!("audiotestsrc", Some("mic_src"))?;
             let convert = element!("audioconvert", Some("mic_convert"))?;
             let resample = element!("audioresample", Some("mic_resample"))?;
+            let chmix = element!("audiochannelmix", Some("mic_chmix"))?;
             let capsfilter = element!("capsfilter", Some("mic_caps"))?;
+            let level = element!("level", Some("mic_level"))?;
             let queue = element!("queue", Some("mic_queue"))?;
+
+            level.set_property("post-messages", true);
+            level.set_property("interval", 30_000_000u64);
 
             let mix = self
                 .pipeline
@@ -287,7 +299,15 @@ impl Stream {
 
             add_link(
                 &self.pipeline,
-                &[&src, &convert, &resample, &capsfilter, &queue],
+                &[
+                    &src,
+                    &convert,
+                    &resample,
+                    &chmix,
+                    &capsfilter,
+                    &level,
+                    &queue,
+                ],
             )?;
 
             let srcpad = queue.static_pad("src").unwrap();
@@ -304,7 +324,9 @@ impl Stream {
             let src = self.pipeline.by_name("mic_src").unwrap();
             let convert = self.pipeline.by_name("mic_convert").unwrap();
             let resample = self.pipeline.by_name("mic_resample").unwrap();
+            let chmix = self.pipeline.by_name("mic_chmix").unwrap();
             let capsfilter = self.pipeline.by_name("mic_caps").unwrap();
+            let level = self.pipeline.by_name("mic_level").unwrap();
             let queue = self.pipeline.by_name("mic_queue").unwrap();
             let mix = self.pipeline.by_name("audiomix").unwrap();
 
@@ -329,7 +351,16 @@ impl Stream {
             // Remove all unused elements
             remove_many(
                 &self.pipeline,
-                &[&src, &convert, &resample, &capsfilter, &queue, &fakesink],
+                &[
+                    &src,
+                    &convert,
+                    &resample,
+                    &chmix,
+                    &capsfilter,
+                    &level,
+                    &queue,
+                    &fakesink,
+                ],
             )?;
 
             self.pipeline.set_state(gst::State::Playing)?;
@@ -410,10 +441,19 @@ impl Stream {
 
         let pipeline = self.pipeline.downgrade();
         let sound_tx = self.sound_ch.1.clone();
+        let mic_tx = self.mic_ch.1.clone();
 
         thread::spawn(move || {
             let pipeline = pipeline.upgrade().unwrap();
-            let mut last_levels = vec![0f32; 2];
+            let mut last_output_levels = vec![0f32; 2];
+            let mut last_mic_levels = vec![0f32; 2];
+
+            let get_rms = |rms: &glib::ValueArray, ch: usize, last: &Vec<f32>| {
+                let value: f64 = rms.nth(ch as u32).unwrap().get().unwrap();
+                let rms = 10f64.powf(value / 20f64) as f32;
+                rms.max(last[ch] * 0.95)
+            };
+
             for msg in bus.iter_timed(gst::ClockTime::NONE) {
                 use gst::MessageView;
 
@@ -426,17 +466,34 @@ impl Stream {
                                     return;
                                 }
 
-                                let get_rms = |ch: usize| {
-                                    let value: f64 = rms.nth(ch as u32).unwrap().get().unwrap();
-                                    let rms = 10f64.powf(value / 20f64) as f32;
-                                    rms.max(last_levels[ch] * 0.95)
+                                match &msg
+                                    .src()
+                                    .map(|s| s.name())
+                                    .as_ref()
+                                    .map(glib::GString::as_str)
+                                {
+                                    Some("output_level") => {
+                                        let levels = (
+                                            get_rms(&rms, 0, &last_output_levels),
+                                            get_rms(&rms, 1, &last_output_levels),
+                                        );
+                                        last_output_levels[0] = levels.0;
+                                        last_output_levels[1] = levels.1;
+
+                                        sound_tx.update(levels).unwrap()
+                                    }
+                                    Some("mic_level") => {
+                                        let levels = (
+                                            get_rms(&rms, 0, &last_mic_levels),
+                                            get_rms(&rms, 1, &last_mic_levels),
+                                        );
+                                        last_mic_levels[0] = levels.0;
+                                        last_mic_levels[1] = levels.1;
+
+                                        mic_tx.update(levels).unwrap()
+                                    }
+                                    _ => {}
                                 };
-
-                                let levels = (get_rms(0), get_rms(1));
-                                last_levels[0] = levels.0;
-                                last_levels[1] = levels.1;
-
-                                sound_tx.update(levels).unwrap();
                             }
                             None => (),
                         };

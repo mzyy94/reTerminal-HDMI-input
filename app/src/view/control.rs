@@ -74,15 +74,15 @@ impl super::ViewApp for App {
             .width(Length::Units(1024))
             .height(Length::Units(576));
 
-        let levels = self.streamer.get_levels();
+        let output_levels = self.streamer.get_output_levels();
 
         let meters: Element<_> = Container::new(
             Row::new()
                 .width(Length::Fill)
                 .spacing(12)
                 .align_items(Alignment::Start)
-                .push(meter::LevelMeter::new(levels.0).height(Length::Units(576 - 12)))
-                .push(meter::LevelMeter::new(levels.1).height(Length::Units(576 - 12))),
+                .push(meter::LevelMeter::new(output_levels.0).height(Length::Units(576 - 12)))
+                .push(meter::LevelMeter::new(output_levels.1).height(Length::Units(576 - 12))),
         )
         .padding(12)
         .center_x()
@@ -115,6 +115,12 @@ impl super::ViewApp for App {
             .vertical_alignment(alignment::Vertical::Center)
             .size(36);
 
+        let mic_levels = if self.streamer.mic_off() {
+            &(0.0, 0.0)
+        } else {
+            self.streamer.get_mic_levels()
+        };
+
         let meters: Element<_> = Container::new(
             Column::new()
                 .spacing(16)
@@ -125,8 +131,8 @@ impl super::ViewApp for App {
                     Row::new()
                         .spacing(12)
                         .align_items(Alignment::Start)
-                        .push(meter::LevelMeter::new(0.0).height(Length::Units(576 - 80)))
-                        .push(meter::LevelMeter::new(0.0).height(Length::Units(576 - 80))),
+                        .push(meter::LevelMeter::new(mic_levels.0).height(Length::Units(576 - 80)))
+                        .push(meter::LevelMeter::new(mic_levels.1).height(Length::Units(576 - 80))),
                 ),
         )
         .padding(12)
