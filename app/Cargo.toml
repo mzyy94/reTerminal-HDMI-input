@@ -27,3 +27,4 @@ serde_json = "1.0.79"
 single_value_channel = "1.2.2"
 toml = "0.5.8"
 buttonshim = { git = "https://github.com/mzyy94/buttonshim", optional = true }
+systemstat = "0.1.10"

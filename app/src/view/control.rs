@@ -3,6 +3,7 @@ use iced::{
     Row, Space, Subscription, Text,
 };
 use iced_native::{keyboard, subscription, Event};
+use systemstat::{CPULoad, DelayedMeasurement, Platform, System};
 
 use anyhow::Error;
 
@@ -20,12 +21,15 @@ pub enum Message {
     Event(Event),
     UpdateFrame(Instant),
     StartStream(Result<String, IngestError>),
+    UpdateMetrics(Instant),
 }
 
 #[derive(Default)]
 pub struct App {
     streamer: stream::Stream,
     rtmp_host: String,
+    cpu: Option<DelayedMeasurement<CPULoad>>,
+    cpu_usage: String,
     start: Option<Instant>,
     settings: button::State,
 }
@@ -38,9 +42,12 @@ impl super::ViewApp for App {
         streamer.create_videopipeline().unwrap();
         streamer.create_audiopipeline().unwrap();
         streamer.run_loop().unwrap();
+        let sys = System::new();
+        let cpu = sys.cpu_load_aggregate().ok();
 
         let mut app = App {
             streamer,
+            cpu,
             ..App::default()
         };
         app.reload_setting();
@@ -51,6 +58,7 @@ impl super::ViewApp for App {
         Subscription::batch([
             time::every(Duration::from_millis(1000 / 30)).map(Message::UpdateFrame),
             subscription::events().map(Message::Event),
+            time::every(Duration::from_secs(3)).map(Message::UpdateMetrics),
         ])
     }
 
@@ -208,7 +216,7 @@ impl super::ViewApp for App {
             .align_items(Alignment::Center)
             .spacing(10)
             .push(icon(font::Icon::Microchip))
-            .push(text("100%").width(Length::Units(90)))
+            .push(text(&self.cpu_usage).width(Length::Units(90)))
             .push(icon(font::Icon::Stopwatch))
             .push(text(&time).width(Length::Units(150)))
             .push(icon(font::Icon::CloudArrowUp))
@@ -297,6 +305,15 @@ impl super::ViewApp for App {
             Message::StartStream(url) => match url {
                 Ok(url) => self.start_stream(url).unwrap(),
                 _ => {}
+            },
+            Message::UpdateMetrics(_) => match self.cpu.as_ref() {
+                Some(cpu) => {
+                    let cpu = cpu.done().unwrap();
+                    self.cpu_usage = format!("{:3.0}%", cpu.user * 100.0);
+                }
+                None => {
+                    self.cpu_usage = String::from("n/a");
+                }
             },
         }
 
