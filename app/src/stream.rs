@@ -11,6 +11,8 @@ use single_value_channel::{channel_starting_with, Receiver, Updater};
 mod element;
 use element::{add_link, element, remove_many, MissingElement};
 
+use crate::setting::MicrophoneMode;
+
 pub struct Stream {
     pipeline: gst::Pipeline,
     camera: bool,
@@ -285,6 +287,16 @@ impl Stream {
 
             level.set_property("post-messages", true);
             level.set_property("interval", 30_000_000u64);
+
+            if let Some(mode) = crate::SETTINGS.read().unwrap().media.mic_mode.clone() {
+                match mode {
+                    MicrophoneMode::ForceStereo => {
+                        chmix.set_property("left-to-right", 1.0);
+                        chmix.set_property("right-to-left", 1.0);
+                    }
+                    _ => {}
+                }
+            }
 
             let mix = self
                 .pipeline

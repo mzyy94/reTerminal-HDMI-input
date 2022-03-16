@@ -19,10 +19,30 @@ pub struct DeviceSetting {
     pub camera_device: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MicrophoneMode {
+    Normal,
+    ForceStereo,
+}
+
+impl std::str::FromStr for MicrophoneMode {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_value(serde_json::Value::String(s.to_string()))
+    }
+}
+
+#[derive(Deserialize, Serialize, Default, Debug)]
+pub struct MediaSetting {
+    pub mic_mode: Option<MicrophoneMode>,
+}
+
 #[derive(Deserialize, Serialize, Default, Debug)]
 pub struct Settings {
     pub broadcast: BroadcastSetting,
     pub device: DeviceSetting,
+    pub media: MediaSetting,
 }
 
 impl Settings {
@@ -60,6 +80,11 @@ impl Settings {
             .and_then(|service| service.parse().ok())
             .or(setting.broadcast.ingest_service);
 
+        let mic_mode = env::var("MIC_MODE")
+            .ok()
+            .and_then(|mode| mode.parse().ok())
+            .or(setting.media.mic_mode);
+
         Settings {
             broadcast: BroadcastSetting {
                 ingest_service,
@@ -70,6 +95,7 @@ impl Settings {
                 hdmi_device,
                 camera_device,
             },
+            media: MediaSetting { mic_mode },
         }
     }
 
