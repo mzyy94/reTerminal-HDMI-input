@@ -196,15 +196,15 @@ impl Stream {
             let sinkpads = mix.sink_pads();
             let sinkpad = sinkpads.last().unwrap();
 
-            // Send EOS to mix in order to stop incoming stream
-            sinkpad.send_event(gst::event::Eos::new());
-
             // Change sink of transformation from mix to fakesink
-            srcpad.unlink(sinkpad)?;
             let fakesink = element!("fakesink")?;
             self.pipeline.add(&fakesink)?;
             let fakepad = fakesink.static_pad("sink").unwrap();
+            srcpad.unlink(sinkpad)?;
             srcpad.link(&fakepad)?;
+
+            // Send EOS to mix in order to stop incoming stream
+            sinkpad.send_event(gst::event::Eos::new());
 
             // Remove sink of camera input
             mix.release_request_pad(sinkpad);
@@ -313,15 +313,15 @@ impl Stream {
             let sinkpads = mix.sink_pads();
             let sinkpad = sinkpads.last().unwrap();
 
-            // Send EOS to mix in order to stop incoming stream
-            sinkpad.send_event(gst::event::Eos::new());
-
             // Change sink of queue from mix to fakesink
-            srcpad.unlink(sinkpad)?;
             let fakesink = element!("fakesink")?;
             self.pipeline.add(&fakesink)?;
             let fakepad = fakesink.static_pad("sink").unwrap();
+            srcpad.unlink(sinkpad)?;
             srcpad.link(&fakepad)?;
+
+            // Send EOS to mix in order to stop incoming stream
+            sinkpad.send_event(gst::event::Eos::new());
 
             // Remove sink of mic input
             mix.release_request_pad(sinkpad);
