@@ -31,6 +31,7 @@ pub enum Icon {
     Stopwatch,
     CloudArrowUp,
     Microchip,
+    MicrophoneLines,
 }
 
 impl ToString for Icon {
@@ -46,6 +47,7 @@ impl ToString for Icon {
             Icon::Stopwatch => '\u{f2f2}',
             Icon::CloudArrowUp => '\u{f0ee}',
             Icon::Microchip => '\u{f2db}',
+            Icon::MicrophoneLines => '\u{f3c9}',
         }
         .to_string()
     }

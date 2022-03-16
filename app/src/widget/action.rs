@@ -2,25 +2,12 @@ use crate::font::{Icon, ICONS, PLEXSANSBOLD};
 use iced::{alignment, button, Background, Button, Color, Length, Text};
 
 pub enum IconButton {
-    Active,
-    Inactive,
     Round,
 }
 
 impl button::StyleSheet for IconButton {
     fn active(&self) -> button::Style {
         match self {
-            IconButton::Active => button::Style {
-                background: Some(Background::Color(Color::from_rgb8(94, 182, 238))),
-                text_color: Color::WHITE,
-                ..button::Style::default()
-            },
-            IconButton::Inactive => button::Style {
-                background: Some(Background::Color(Color::from_rgb8(180, 180, 180))),
-                text_color: Color::WHITE,
-                ..button::Style::default()
-            },
-
             IconButton::Round => button::Style {
                 background: Some(Background::Color(Color::from_rgb8(119, 139, 143))),
                 text_color: Color::WHITE,
@@ -28,10 +15,6 @@ impl button::StyleSheet for IconButton {
                 ..button::Style::default()
             },
         }
-    }
-
-    fn disabled(&self) -> button::Style {
-        self.active()
     }
 }
 
@@ -45,14 +28,8 @@ where
         .horizontal_alignment(alignment::Horizontal::Center)
         .vertical_alignment(alignment::Vertical::Center)
         .size(48);
-    let width = match style {
-        IconButton::Round => 100,
-        _ => 90,
-    };
-    let height = match style {
-        IconButton::Round => 100,
-        _ => 80,
-    };
+    let width = 100;
+    let height = 100;
     let button = Button::new(state, text).style(style);
 
     button

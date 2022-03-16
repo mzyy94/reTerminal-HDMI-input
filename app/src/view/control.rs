@@ -27,11 +27,6 @@ pub struct App {
     streamer: stream::Stream,
     rtmp_host: String,
     start: Option<Instant>,
-    voice_off: button::State,
-    camera_off: button::State,
-    sound_off: button::State,
-    video_off: button::State,
-    stream_off: button::State,
     first_action: button::State,
     second_action: button::State,
     third_action: button::State,
@@ -113,36 +108,38 @@ impl super::ViewApp for App {
             .center_x()
             .style(style::PreviewArea);
 
+        let mic_icon = Text::new(font::Icon::MicrophoneLines)
+            .font(font::ICONS)
+            .width(Length::Units(36))
+            .horizontal_alignment(alignment::Horizontal::Center)
+            .vertical_alignment(alignment::Vertical::Center)
+            .size(36);
+
+        let meters: Element<_> = Container::new(
+            Column::new()
+                .spacing(16)
+                .align_items(Alignment::Center)
+                .push(Space::with_height(Length::Units(0)))
+                .push(mic_icon)
+                .push(
+                    Row::new()
+                        .spacing(12)
+                        .align_items(Alignment::Start)
+                        .push(meter::LevelMeter::new(0.0).height(Length::Units(576 - 80)))
+                        .push(meter::LevelMeter::new(0.0).height(Length::Units(576 - 80))),
+                ),
+        )
+        .padding(12)
+        .center_x()
+        .style(style::MeterArea)
+        .into();
+
+        let meter_area = Container::new(meters).padding(12).center_x();
+
         let side_actions: Element<_> = Column::new()
             .width(Length::Fill)
-            .spacing(12)
-            .align_items(Alignment::End)
-            .push(Space::with_height(Length::Units(104)))
-            .push(action::icon(
-                &mut self.voice_off,
-                font::Icon::MicrophoneSlash,
-                action::IconButton::Active,
-            ))
-            .push(action::icon(
-                &mut self.camera_off,
-                font::Icon::VideoSlash,
-                action::IconButton::Inactive,
-            ))
-            .push(action::icon(
-                &mut self.sound_off,
-                font::Icon::VolumeXMark,
-                action::IconButton::Inactive,
-            ))
-            .push(action::icon(
-                &mut self.video_off,
-                font::Icon::Clapperboard,
-                action::IconButton::Inactive,
-            ))
-            .push(action::icon(
-                &mut self.stream_off,
-                font::Icon::CirclePause,
-                action::IconButton::Inactive,
-            ))
+            .align_items(Alignment::Center)
+            .push(meter_area)
             .into();
 
         let main_content: Element<_> = Row::new()
