@@ -21,33 +21,29 @@ pub const PLEXMONO: Font = Font::External {
 };
 
 pub enum Icon {
-    MicrophoneSlash,
-    VideoSlash,
-    VolumeXMark,
-    Clapperboard,
-    CirclePause,
     Gear,
     Gauge,
     Stopwatch,
     CloudArrowUp,
     Microchip,
     MicrophoneLines,
+    Microphone,
+    VolumeOff,
+    Shuffle,
 }
 
 impl ToString for Icon {
     fn to_string(&self) -> String {
         match self {
-            Icon::MicrophoneSlash => '\u{f131}',
-            Icon::VideoSlash => '\u{f4e2}',
-            Icon::VolumeXMark => '\u{f6a9}',
-            Icon::Clapperboard => '\u{e131}',
-            Icon::CirclePause => '\u{f28b}',
             Icon::Gear => '\u{f013}',
             Icon::Gauge => '\u{f624}',
             Icon::Stopwatch => '\u{f2f2}',
             Icon::CloudArrowUp => '\u{f0ee}',
             Icon::Microchip => '\u{f2db}',
             Icon::MicrophoneLines => '\u{f3c9}',
+            Icon::Microphone => '\u{f130}',
+            Icon::VolumeOff => '\u{f026}',
+            Icon::Shuffle => '\u{f074}',
         }
         .to_string()
     }

@@ -138,10 +138,42 @@ impl super::ViewApp for App {
 
         let meter_area = Container::new(meters).padding(12).center_x();
 
-        let side_actions: Element<_> = Column::new()
+        let actions: Element<_> = Column::new()
+            .width(Length::Fill)
+            .spacing(12)
+            .align_items(Alignment::End)
+            .push(Space::with_height(Length::Units(104)))
+            .push(label::icon_text!(
+                font::Icon::Microphone,
+                "+",
+                label::Label::Inactive
+            ))
+            .push(label::icon_text!(
+                font::Icon::Microphone,
+                "-",
+                label::Label::Inactive
+            ))
+            .push(label::icon_text!(
+                font::Icon::VolumeOff,
+                "+",
+                label::Label::Inactive
+            ))
+            .push(label::icon_text!(
+                font::Icon::VolumeOff,
+                "-",
+                label::Label::Inactive
+            ))
+            .push(label::icon_text!(
+                font::Icon::Shuffle,
+                label::Label::Inactive
+            ))
+            .into();
+
+        let side_actions: Element<_> = Row::new()
             .width(Length::Fill)
             .align_items(Alignment::Center)
             .push(meter_area)
+            .push(actions)
             .into();
 
         let main_content: Element<_> = Row::new()

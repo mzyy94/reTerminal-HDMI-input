@@ -48,3 +48,53 @@ where
         .width(Length::Units(220))
         .height(Length::Units(60))
 }
+
+macro_rules! icon_text {
+    ($icon:expr, $text:expr, $style:expr) => {
+        Container::new(
+            Row::new()
+                .spacing(4)
+                .align_items(Alignment::Center)
+                .push(
+                    Text::new($icon)
+                        .size(24)
+                        .font(crate::font::ICONS)
+                        .color(Color::WHITE)
+                        .vertical_alignment(alignment::Vertical::Center)
+                        .horizontal_alignment(alignment::Horizontal::Center),
+                )
+                .push(
+                    Text::new($text)
+                        .size(36)
+                        .font(crate::font::PLEXSANSBOLD)
+                        .color(Color::WHITE)
+                        .vertical_alignment(alignment::Vertical::Center)
+                        .horizontal_alignment(alignment::Horizontal::Center),
+                ),
+        )
+        .style($style)
+        .padding(2)
+        .align_x(alignment::Horizontal::Center)
+        .align_y(alignment::Vertical::Center)
+        .width(Length::Units(50))
+        .height(Length::Units(80))
+    };
+    ($icon:expr, $style:expr) => {
+        Container::new(
+            Text::new($icon)
+                .size(24)
+                .font(crate::font::ICONS)
+                .color(Color::WHITE)
+                .vertical_alignment(alignment::Vertical::Center)
+                .horizontal_alignment(alignment::Horizontal::Center),
+        )
+        .style($style)
+        .padding(2)
+        .align_x(alignment::Horizontal::Center)
+        .align_y(alignment::Vertical::Center)
+        .width(Length::Units(50))
+        .height(Length::Units(80))
+    };
+}
+
+pub(crate) use icon_text;
