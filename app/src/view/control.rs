@@ -209,8 +209,6 @@ impl super::ViewApp for App {
             .spacing(10)
             .push(icon(font::Icon::Microchip))
             .push(text("100%").width(Length::Units(90)))
-            .push(icon(font::Icon::Gauge))
-            .push(text("1000 ms").width(Length::Units(150)))
             .push(icon(font::Icon::Stopwatch))
             .push(text(&time).width(Length::Units(150)))
             .push(icon(font::Icon::CloudArrowUp))
