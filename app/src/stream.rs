@@ -77,10 +77,12 @@ impl Stream {
         let srccapsfilter = element!("capsfilter")?;
         let upload = element!("glupload")?;
         let mixer = element!("glvideomixer", Some("videomix"))?;
+        let tee = element!("tee", Some("videotee"))?;
+        let queue0 = element!("queue")?;
         let colorconvert = element!("glcolorconvert")?;
         let download = element!("gldownload")?;
+        let rate = element!("videorate")?;
         let sinkcapsfilter = element!("capsfilter")?;
-        let tee = element!("tee", Some("videotee"))?;
         let queue = element!("queue")?;
         let sink = element!("appsink")?;
 
@@ -95,10 +97,12 @@ impl Stream {
                 &srccapsfilter,
                 &upload,
                 &mixer,
+                &tee,
+                &queue0,
                 &colorconvert,
                 &download,
+                &rate,
                 &sinkcapsfilter,
-                &tee,
                 &queue,
                 &sink,
             ],
@@ -117,6 +121,7 @@ impl Stream {
         srccapsfilter.set_property("caps", &caps);
 
         let caps = gst::Caps::builder("video/x-raw")
+            .field("framerate", gst::Fraction::new(5, 1))
             .field("format", gst_video::VideoFormat::Bgra.to_str())
             .build();
         sinkcapsfilter.set_property("caps", &caps);
@@ -159,7 +164,6 @@ impl Stream {
             let src = element!("videotestsrc", Some("camera_src"))?;
             let capsfilter = element!("capsfilter", Some("camera_caps"))?;
             let upload = element!("glupload", Some("camera_upload"))?;
-            let transformation = element!("gltransformation", Some("camera_trans"))?;
 
             if let Some(device) = crate::SETTINGS.read().unwrap().device.camera_device.clone() {
                 src.set_property("device", device);
@@ -175,15 +179,9 @@ impl Stream {
                 .build();
             capsfilter.set_property("caps", &caps);
 
-            transformation.set_property("translation-x", 0.1f32);
-            transformation.set_property("translation-y", -0.1f32);
+            add_link(&self.pipeline, &[&src, &capsfilter, &upload])?;
 
-            add_link(
-                &self.pipeline,
-                &[&src, &capsfilter, &upload, &transformation],
-            )?;
-
-            let srcpad = transformation.static_pad("src").unwrap();
+            let srcpad = upload.static_pad("src").unwrap();
             let sinkpad = mix
                 .request_pad_simple("sink_%u")
                 .expect("If this happened, something is terribly wrong");
@@ -197,15 +195,14 @@ impl Stream {
             let src = self.pipeline.by_name("camera_src").unwrap();
             let capsfilter = self.pipeline.by_name("camera_caps").unwrap();
             let upload = self.pipeline.by_name("camera_upload").unwrap();
-            let transformation = self.pipeline.by_name("camera_trans").unwrap();
             let mix = self.pipeline.by_name("videomix").unwrap();
 
-            // Get srcpad of transformation and sinkpad of mix
-            let srcpad = transformation.static_pad("src").unwrap();
+            // Get srcpad of upload and sinkpad of mix
+            let srcpad = upload.static_pad("src").unwrap();
             let sinkpads = mix.sink_pads();
             let sinkpad = sinkpads.last().unwrap();
 
-            // Change sink of transformation from mix to fakesink
+            // Change sink of upload from mix to fakesink
             let fakesink = element!("fakesink")?;
             self.pipeline.add(&fakesink)?;
             let fakepad = fakesink.static_pad("sink").unwrap();
@@ -219,10 +216,7 @@ impl Stream {
             mix.release_request_pad(sinkpad);
 
             // Remove all unused elements
-            remove_many(
-                &self.pipeline,
-                &[&src, &capsfilter, &upload, &transformation, &fakesink],
-            )?;
+            remove_many(&self.pipeline, &[&src, &capsfilter, &upload, &fakesink])?;
 
             self.pipeline.set_state(gst::State::Playing)?;
 
@@ -236,6 +230,7 @@ impl Stream {
         let src = element!("alsasrc")?;
         #[cfg(feature = "testsrc")]
         let src = element!("audiotestsrc")?;
+        let queue0 = element!("queue")?;
         let convert = element!("audioconvert")?;
         let capsfilter = element!("capsfilter")?;
         let mix = element!("audiomixer", Some("audiomix"))?;
@@ -252,6 +247,7 @@ impl Stream {
             &self.pipeline,
             &[
                 &src,
+                &queue0,
                 &convert,
                 &capsfilter,
                 &mix,
@@ -278,6 +274,7 @@ impl Stream {
             let src = element!("alsasrc", Some("mic_src"))?;
             #[cfg(feature = "testsrc")]
             let src = element!("audiotestsrc", Some("mic_src"))?;
+            let queue0 = element!("queue", Some("mic_queue0"))?;
             let convert = element!("audioconvert", Some("mic_convert"))?;
             let resample = element!("audioresample", Some("mic_resample"))?;
             let chmix = element!("audiochannelmix", Some("mic_chmix"))?;
@@ -313,6 +310,7 @@ impl Stream {
                 &self.pipeline,
                 &[
                     &src,
+                    &queue0,
                     &convert,
                     &resample,
                     &chmix,
@@ -334,6 +332,7 @@ impl Stream {
         } else {
             // Get existing elements
             let src = self.pipeline.by_name("mic_src").unwrap();
+            let queue0 = self.pipeline.by_name("mic_queue0").unwrap();
             let convert = self.pipeline.by_name("mic_convert").unwrap();
             let resample = self.pipeline.by_name("mic_resample").unwrap();
             let chmix = self.pipeline.by_name("mic_chmix").unwrap();
@@ -365,6 +364,7 @@ impl Stream {
                 &self.pipeline,
                 &[
                     &src,
+                    &queue0,
                     &convert,
                     &resample,
                     &chmix,
@@ -385,7 +385,6 @@ impl Stream {
     fn setup_videoencoder(&self, mux: &gst::Element) -> Result<(), Error> {
         let videosrc = self.pipeline.by_name("videotee").unwrap();
         let queue = element!("queue")?;
-        let upload = element!("glupload")?;
         let colorconvert = element!("glcolorconvert")?;
         let download = element!("gldownload")?;
         let videocapsfilter = element!("capsfilter")?;
@@ -393,6 +392,7 @@ impl Stream {
         let parse = element!("h264parse")?;
 
         let caps = gst::Caps::builder("video/x-raw")
+            .field("framerate", gst::Fraction::new(30, 1))
             .field("format", gst_video::VideoFormat::I420.to_str())
             .build();
         videocapsfilter.set_property("caps", &caps);
@@ -401,7 +401,6 @@ impl Stream {
             &self.pipeline,
             &[
                 &queue,
-                &upload,
                 &colorconvert,
                 &download,
                 &videocapsfilter,
@@ -430,11 +429,12 @@ impl Stream {
             return Ok(());
         }
         let mux = element!("flvmux", Some("mux"))?;
+        let queue = element!("queue")?;
         let sink = element!("rtmpsink")?;
 
         sink.set_property("location", location);
 
-        add_link(&self.pipeline, &[&mux, &sink])?;
+        add_link(&self.pipeline, &[&mux, &queue, &sink])?;
         self.setup_videoencoder(&mux)?;
         self.setup_audioencoder(&mux)?;
 
