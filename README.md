@@ -13,6 +13,8 @@ Read [reTerminalとHDMI入力でゲーム配信！ - HDMI入力拡張モジュ�
 - [H2C-RPI-B01](http://s.click.aliexpress.com/e/_dTNt3wP)
 - [Button SHIM](https://shop.pimoroni.com/products/button-shim)
 - M2.5 screw
+- M4 screw
+
 ## Resources
 
 This repository includes following resources:
@@ -20,6 +22,9 @@ This repository includes following resources:
 - [Hardware patch for H2C-RPI-B01](patch)
 - [dtoverlay for reTerminal](overlays)
 - [3D printable enclosure model](case)
+- [Demo application](app)
+
+![broadcast-terminal](/docs/app.png)
 
 ## License
 
